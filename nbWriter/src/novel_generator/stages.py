@@ -1,10 +1,43 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Callable, Any
+import re
 from .models import NovelProject, StageStatus
 from .context_manager import ContextManager
 from .llm_client import LLMClient
 from .prompt_templates import get_template_content, PromptTemplateManager
 from pathlib import Path
+
+
+def extract_chapter_title(outline: str, chapter_number: int) -> Optional[str]:
+    """从大纲中提取章节标题
+
+    支持的格式：
+    - ## 第X章：标题
+    - ## 第X章: 标题
+    - ## 第X章 标题
+
+    Args:
+        outline: 大纲文本
+        chapter_number: 章节编号
+
+    Returns:
+        提取到的标题，如果未找到则返回 None
+    """
+    patterns = [
+        rf"##\s*第{chapter_number}章[：:]\s*(.+?)(?:\n|$)",
+        rf"##\s*第{chapter_number}章\s+(.+?)(?:\n|$)",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, outline)
+        if match:
+            title = match.group(1).strip()
+            # 移除可能的标记符号
+            title = re.sub(r'^[🔖\s]+', '', title)
+            return title
+
+    return None
+
 
 class GenerationStage(ABC):
     """生成阶段抽象基类"""
@@ -34,6 +67,9 @@ class GenerationStage(ABC):
     async def run(self, user_input: Optional[str] = None, on_progress: Optional[Callable] = None) -> Any:
         """运行阶段（带状态管理）"""
         stage_name = self.get_stage_name()
+
+        # 保存回调函数供子类使用
+        self.on_progress = on_progress
 
         # 更新状态为进行中
         self.ctx.update_stage_status(stage_name, StageStatus.IN_PROGRESS)
@@ -217,6 +253,15 @@ class ChapterGenerationStage(GenerationStage):
         outline_file = self.ctx.project_dir / "plot" / "outline.md"
         outline = outline_file.read_text(encoding='utf-8') if outline_file.exists() else ""
 
+        # 提取章节标题
+        chapter_title = extract_chapter_title(outline, chapter_number)
+        if not chapter_title:
+            chapter_title = f"第{chapter_number}章"
+            if hasattr(self, 'on_progress') and self.on_progress:
+                self.on_progress(f"⚠️  第{chapter_number}章未找到标题，使用默认格式")
+        else:
+            chapter_title = f"第{chapter_number}章 {chapter_title}"
+
         # 提取该章节的大纲
         chapter_outline = self._extract_chapter_outline(outline, chapter_number)
 
@@ -230,7 +275,7 @@ class ChapterGenerationStage(GenerationStage):
             template_content,
             genre=self.project.genre,
             chapter_number=chapter_number,
-            chapter_title=f"第{chapter_number}章",
+            chapter_title=chapter_title,
             chapter_outline=chapter_outline,
             context_summary=context_summary,
             previous_chapter=previous_chapter or "",
@@ -238,6 +283,10 @@ class ChapterGenerationStage(GenerationStage):
         )
 
         chapter_content = await self.llm.generate(prompt)
+
+        # 确保章节内容以标题开头
+        if not chapter_content.startswith(f"# {chapter_title}"):
+            chapter_content = f"# {chapter_title}\n\n{chapter_content}"
 
         # 保存章节
         self.ctx.save_chapter(chapter_number, chapter_content)
@@ -261,3 +310,85 @@ class ChapterGenerationStage(GenerationStage):
                 chapter_lines.append(line)
 
         return '\n'.join(chapter_lines) if chapter_lines else f"第{chapter_number}章大纲"
+
+
+class PolishStage(GenerationStage):
+    """润色与去AI化阶段"""
+
+    def get_stage_name(self) -> str:
+        return "润色与去AI化"
+
+    async def execute(self, user_input: Optional[str] = None) -> dict:
+        """执行章节润色，去除AI痕迹"""
+        template_content = get_template_content("polish")
+
+        # 获取所有章节
+        chapters_dir = self.ctx.project_dir / "chapters"
+        if not chapters_dir.exists():
+            raise ValueError("章节目录不存在，请先生成章节")
+
+        chapter_files = sorted(chapters_dir.glob("chapter-*.md"))
+        polished_count = 0
+        polished_chapters = self.ctx.get_polished_chapters()
+
+        # 计算需要润色的章节
+        chapters_to_polish = []
+        for chapter_file in chapter_files:
+            chapter_number = int(chapter_file.stem.split('-')[1])
+            if chapter_number not in polished_chapters:
+                chapters_to_polish.append((chapter_number, chapter_file))
+
+        if not chapters_to_polish:
+            if hasattr(self, 'on_progress') and self.on_progress:
+                self.on_progress("所有章节已润色完成")
+            return {
+                "total_chapters": len(chapter_files),
+                "polished_count": 0,
+                "message": "所有章节已润色完成"
+            }
+
+        total_to_polish = len(chapters_to_polish)
+        if hasattr(self, 'on_progress') and self.on_progress:
+            self.on_progress(f"共需润色 {total_to_polish} 章")
+
+        for idx, (chapter_number, chapter_file) in enumerate(chapters_to_polish, 1):
+            try:
+                # 显示进度
+                if hasattr(self, 'on_progress') and self.on_progress:
+                    self.on_progress(f"正在润色第{chapter_number}章 ({idx}/{total_to_polish})...")
+
+                original_content = chapter_file.read_text(encoding='utf-8')
+
+                # 构建润色提示
+                prompt = self.template_manager.render_string(
+                    template_content,
+                    genre=self.project.genre,
+                    chapter_number=chapter_number,
+                    original_content=original_content,
+                    user_requirements=user_input or ""
+                )
+
+                # 执行润色
+                polished_content = await self.llm.generate(prompt)
+
+                # 保存润色后的内容（覆盖原文件）
+                self.ctx.save_chapter(chapter_number, polished_content)
+
+                # 标记章节已润色（立即保存进度）
+                self.ctx.mark_chapter_polished(chapter_number)
+                polished_count += 1
+
+                if hasattr(self, 'on_progress') and self.on_progress:
+                    self.on_progress(f"✓ 第{chapter_number}章润色完成 ({idx}/{total_to_polish})")
+
+            except Exception as e:
+                if hasattr(self, 'on_progress') and self.on_progress:
+                    self.on_progress(f"✗ 第{chapter_number}章润色失败: {str(e)}")
+                # 继续处理下一章，不中断整个流程
+                continue
+
+        return {
+            "total_chapters": len(chapter_files),
+            "polished_count": polished_count,
+            "message": f"已润色 {polished_count}/{total_to_polish} 章"
+        }

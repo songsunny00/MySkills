@@ -8,6 +8,7 @@ class NovelGenre(str, Enum):
     XUANHUAN = "xuanhuan"  # 玄幻
     DUSHI = "dushi"  # 都市
     YANQING = "yanqing"  # 言情
+    TIANYUAN_YANQING = "tianyuan_yanqing"  # 田园现代言情
     KEHUAN = "kehuan"  # 科幻
     WUXIA = "wuxia"  # 武侠
     XUANYI = "xuanyi"  # 悬疑
@@ -74,6 +75,7 @@ class NovelProject(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.now)
     current_stage: str = "init"
     stage_status: Dict[str, StageStatus] = Field(default_factory=dict)
+    polished_chapters: List[int] = Field(default_factory=list)  # 已润色的章节列表
 
     class Config:
         use_enum_values = True

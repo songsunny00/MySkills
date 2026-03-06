@@ -11,7 +11,8 @@ from .stages import (
     CharacterCreationStage,
     PlotDesignStage,
     OutlineGenerationStage,
-    ChapterGenerationStage
+    ChapterGenerationStage,
+    PolishStage
 )
 
 class NovelGenerator:
@@ -34,7 +35,9 @@ class NovelGenerator:
         target_word_count: int = 60000,
         project_id: Optional[str] = None,
         on_progress: Optional[Callable] = None,
-        on_stage_complete: Optional[Callable] = None
+        on_stage_complete: Optional[Callable] = None,
+        enable_polish: bool = True,
+        polish_requirements: Optional[str] = None
     ) -> NovelProject:
         """一键生成小说"""
 
@@ -92,10 +95,33 @@ class NovelGenerator:
             project, ctx, chapter_count, on_progress, on_stage_complete
         )
 
+        # 阶段6: 润色与去AI化（可选）
+        if enable_polish:
+            if on_progress:
+                on_progress("开始润色与去AI化处理...")
+            polish_stage = PolishStage(project, ctx, self.llm_client, self.template_manager)
+            polish_result = await polish_stage.run(
+                user_input=polish_requirements,
+                on_progress=on_progress
+            )
+            if on_stage_complete:
+                await on_stage_complete("polish", polish_result)
+
         if on_progress:
             on_progress("小说生成完成！")
 
         return project
+
+    async def polish_project(
+        self,
+        project: NovelProject,
+        ctx: ContextManager,
+        requirements: Optional[str] = None,
+        on_progress: Optional[Callable] = None
+    ) -> dict:
+        """对已有项目单独执行润色"""
+        polish_stage = PolishStage(project, ctx, self.llm_client, self.template_manager)
+        return await polish_stage.run(user_input=requirements, on_progress=on_progress)
 
     async def _generate_chapters_smart(
         self,
@@ -103,21 +129,30 @@ class NovelGenerator:
         ctx: ContextManager,
         chapter_count: int,
         on_progress: Optional[Callable],
-        on_stage_complete: Optional[Callable]
+        on_stage_complete: Optional[Callable],
+        skip_existing: bool = True
     ):
-        """智能章节生成策略：关键章节优先"""
+        """智能章节生成策略：关键章节优先，支持断点续传"""
 
         chapter_stage = ChapterGenerationStage(project, ctx, self.llm_client, self.template_manager)
 
-        # 关键章节列表
+        generated_chapters = set(ctx.get_generated_chapters()) if skip_existing else set()
+        
+        if generated_chapters and on_progress:
+            on_progress(f"检测到已生成 {len(generated_chapters)} 章，将跳过...")
+
         key_chapters = [
-            1,  # 开篇
-            int(chapter_count * 0.7),  # 高潮
-            chapter_count  # 结局
+            1,
+            int(chapter_count * 0.7),
+            chapter_count
         ]
 
-        # 先生成关键章节
         for chapter_num in key_chapters:
+            if chapter_num in generated_chapters:
+                if on_progress:
+                    on_progress(f"跳过已存在的关键章节: 第{chapter_num}章")
+                continue
+                
             if on_progress:
                 on_progress(f"生成关键章节: 第{chapter_num}章")
 
@@ -126,8 +161,12 @@ class NovelGenerator:
             if on_stage_complete:
                 await on_stage_complete(f"chapter_{chapter_num}", content)
 
-        # 批量生成其余章节
-        remaining_chapters = [i for i in range(1, chapter_count + 1) if i not in key_chapters]
+        remaining_chapters = [i for i in range(1, chapter_count + 1) if i not in key_chapters and i not in generated_chapters]
+
+        if not remaining_chapters:
+            if on_progress:
+                on_progress("所有章节已生成完成！")
+            return
 
         batch_size = 5
         for i in range(0, len(remaining_chapters), batch_size):
@@ -142,6 +181,118 @@ class NovelGenerator:
                 if on_stage_complete:
                     await on_stage_complete(f"chapter_{chapter_num}", content)
 
-            # 批次完成后暂停，等待用户确认
             if on_stage_complete:
                 await on_stage_complete("batch_complete", {"chapters": batch})
+
+    async def resume_generation(
+        self,
+        project_id: str,
+        on_progress: Optional[Callable] = None,
+        on_stage_complete: Optional[Callable] = None,
+        enable_polish: bool = True,
+        polish_requirements: Optional[str] = None
+    ) -> NovelProject:
+        """恢复中断的生成任务，智能检测未完成的阶段"""
+
+        ctx = ContextManager.load_from_project_id(project_id, self.project_config.output_dir)
+        project = ctx.project
+
+        if on_progress:
+            on_progress(f"恢复项目: {project_id}")
+            genre_display = project.genre.value if hasattr(project.genre, 'value') else project.genre
+            on_progress(f"类型: {genre_display}")
+            on_progress(f"目标字数: {project.target_word_count}")
+            on_progress(f"当前阶段: {project.current_stage}")
+
+        # 检测各阶段完成情况
+        stage_status = project.stage_status
+
+        # 阶段1: 世界观构建
+        if stage_status.get("worldbuilding") != "completed" and stage_status.get("世界观构建") != "completed":
+            if on_progress:
+                on_progress("检测到世界观未完成，开始生成...")
+            world_stage = WorldBuildingStage(project, ctx, self.llm_client, self.template_manager)
+            world_building = await world_stage.run(on_progress=on_progress)
+            project.world_building = world_building
+            if on_stage_complete:
+                await on_stage_complete("worldbuilding", world_building)
+        else:
+            if on_progress:
+                on_progress("✓ 世界观已完成")
+
+        # 阶段2: 角色创建
+        if stage_status.get("characters") != "completed" and stage_status.get("角色设定") != "completed":
+            if on_progress:
+                on_progress("检测到角色创建未完成，开始生成...")
+            char_stage = CharacterCreationStage(project, ctx, self.llm_client, self.template_manager)
+            characters = await char_stage.run(on_progress=on_progress)
+            if on_stage_complete:
+                await on_stage_complete("characters", characters)
+        else:
+            if on_progress:
+                on_progress("✓ 角色创建已完成")
+
+        # 阶段3: 情节设计
+        if stage_status.get("plot") != "completed" and stage_status.get("情节设计") != "completed":
+            if on_progress:
+                on_progress("检测到情节设计未完成，开始生成...")
+            plot_stage = PlotDesignStage(project, ctx, self.llm_client, self.template_manager)
+            plot_design = await plot_stage.run(on_progress=on_progress)
+            if on_stage_complete:
+                await on_stage_complete("plot", plot_design)
+        else:
+            if on_progress:
+                on_progress("✓ 情节设计已完成")
+
+        # 阶段4: 大纲生成
+        if stage_status.get("outline") != "completed" and stage_status.get("大纲生成") != "completed":
+            if on_progress:
+                on_progress("检测到大纲未完成，开始生成...")
+            outline_stage = OutlineGenerationStage(project, ctx, self.llm_client, self.template_manager)
+            outline = await outline_stage.run(on_progress=on_progress)
+            if on_stage_complete:
+                await on_stage_complete("outline", outline)
+        else:
+            if on_progress:
+                on_progress("✓ 大纲已完成")
+
+        # 阶段5: 章节生成（智能续传）
+        chapter_count = project.target_word_count // 2000
+        generated_chapters = ctx.get_generated_chapters()
+        missing_chapters = ctx.get_missing_chapters(chapter_count)
+
+        if on_progress:
+            on_progress(f"章节进度: {len(generated_chapters)}/{chapter_count}")
+            if missing_chapters:
+                on_progress(f"待生成章节: {missing_chapters[:10]}{'...' if len(missing_chapters) > 10 else ''}")
+
+        if missing_chapters:
+            await self._generate_chapters_smart(
+                project, ctx, chapter_count, on_progress, on_stage_complete
+            )
+        else:
+            if on_progress:
+                on_progress("✓ 所有章节已完成")
+
+        # 阶段6: 润色与去AI化（可选）
+        if enable_polish:
+            polished_chapters = ctx.get_polished_chapters()
+            if len(polished_chapters) < len(generated_chapters):
+                if on_progress:
+                    on_progress(f"润色进度: {len(polished_chapters)}/{len(generated_chapters)}")
+                    on_progress("开始润色与去AI化处理...")
+                polish_stage = PolishStage(project, ctx, self.llm_client, self.template_manager)
+                polish_result = await polish_stage.run(
+                    user_input=polish_requirements,
+                    on_progress=on_progress
+                )
+                if on_stage_complete:
+                    await on_stage_complete("polish", polish_result)
+            else:
+                if on_progress:
+                    on_progress("✓ 润色已完成")
+
+        if on_progress:
+            on_progress("小说生成完成！")
+
+        return project

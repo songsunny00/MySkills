@@ -16,9 +16,10 @@ class GenerationConfig(BaseModel):
 
 class LLMConfig(BaseModel):
     """LLM配置"""
-    provider: str = "anthropic"  # anthropic or openai
+    provider: str = "anthropic"  # anthropic, openai, deepseek
     model: str = "claude-sonnet-4-6"
     api_key: Optional[str] = None
+    base_url: Optional[str] = None  # 自定义API地址，如代理或私有部署
     temperature: float = 0.7
     max_tokens: int = 4000
 
@@ -29,6 +30,15 @@ class LLMConfig(BaseModel):
                 self.api_key = os.getenv("ANTHROPIC_API_KEY")
             elif self.provider == "openai":
                 self.api_key = os.getenv("OPENAI_API_KEY")
+            elif self.provider == "deepseek":
+                self.api_key = os.getenv("DEEPSEEK_API_KEY")
+        if not self.base_url:
+            if self.provider == "anthropic":
+                self.base_url = os.getenv("ANTHROPIC_BASE_URL")
+            elif self.provider == "openai":
+                self.base_url = os.getenv("OPENAI_BASE_URL")
+            elif self.provider == "deepseek":
+                self.base_url = os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
 
 class ProjectConfig(BaseModel):
     """项目配置"""
