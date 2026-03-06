@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """解析产品需求文档目录，将 docx/xlsx 转为可读文本文件。
 
+支持从 docx 中提取嵌入图片并保存到 _parsed/images/ 目录。
+
 用法:
   python parse_docs.py <文档目录路径>            # 解析所有文件
   python parse_docs.py <文档目录路径> --latest    # 只解析每组文档的最新版本
@@ -14,6 +16,7 @@ from collections import defaultdict
 
 try:
     from docx import Document
+    from docx.oxml.ns import qn
 except ImportError:
     print("需要安装 python-docx: pip install python-docx")
     sys.exit(1)
@@ -70,10 +73,45 @@ def filter_latest_versions(filepaths: list[Path]) -> list[Path]:
     return sorted(result)
 
 
-def parse_docx(filepath: Path) -> str:
-    """解析 docx 文件，提取所有文本内容（含表格）。"""
+def _extract_images_from_paragraph(para_element, doc, images_dir: Path,
+                                    doc_stem: str, image_counter: list) -> list[str]:
+    """从段落元素中提取嵌入图片，保存到 images_dir，返回 markdown 图片引用列表。"""
+    refs = []
+    drawings = para_element.findall('.//' + qn('w:drawing'))
+    for drawing in drawings:
+        blips = drawing.findall('.//' + qn('a:blip'))
+        for blip in blips:
+            embed_id = blip.get(qn('r:embed'))
+            if not embed_id or embed_id not in doc.part.rels:
+                continue
+            rel = doc.part.rels[embed_id]
+            if 'image' not in rel.reltype:
+                continue
+            # 读取图片二进制数据
+            image_part = rel.target_part
+            image_bytes = image_part.blob
+            # 确定扩展名
+            content_type = image_part.content_type  # e.g. "image/png"
+            ext = content_type.split('/')[-1] if '/' in content_type else 'png'
+            if ext == 'jpeg':
+                ext = 'jpg'
+            # 保存图片
+            image_counter[0] += 1
+            img_filename = f"{doc_stem}_img{image_counter[0]}.{ext}"
+            images_dir.mkdir(parents=True, exist_ok=True)
+            img_path = images_dir / img_filename
+            img_path.write_bytes(image_bytes)
+            # 返回 markdown 引用（相对于 _parsed 目录）
+            refs.append(f"![{img_filename}](images/{img_filename})")
+    return refs
+
+
+def parse_docx(filepath: Path, images_dir: Path) -> str:
+    """解析 docx 文件，提取所有文本内容（含表格和嵌入图片）。"""
     doc = Document(str(filepath))
     parts = []
+    doc_stem = filepath.stem
+    image_counter = [0]  # 用 list 以便在闭包中修改
 
     for element in doc.element.body:
         tag = element.tag.split("}")[-1]
@@ -89,6 +127,11 @@ def parse_docx(filepath: Path) -> str:
                     text = para.text.strip()
                     if text:
                         parts.append(prefix + text)
+                    # 提取段落中的嵌入图片
+                    img_refs = _extract_images_from_paragraph(
+                        element, doc, images_dir, doc_stem, image_counter)
+                    for ref in img_refs:
+                        parts.append(ref)
                     break
 
         elif tag == "tbl":
@@ -96,6 +139,9 @@ def parse_docx(filepath: Path) -> str:
                 if table._element is element:
                     parts.append(_parse_table(table))
                     break
+
+    if image_counter[0] > 0:
+        print(f"  [IMG] 提取了 {image_counter[0]} 张嵌入图片到 images/ 目录")
 
     return "\n\n".join(parts)
 
@@ -189,7 +235,8 @@ def main():
 
         try:
             if suffix_tag == "docx":
-                content = parse_docx(filepath)
+                images_dir = output_dir / "images"
+                content = parse_docx(filepath, images_dir)
                 output_path.write_text(content, encoding="utf-8")
                 parsed_files.append(str(output_path))
                 print(f"[OK] {relative} -> {output_path.name}")
