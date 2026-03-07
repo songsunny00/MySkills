@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any
 from .config import LLMConfig
 import asyncio
 
-DEFAULT_TIMEOUT = 180
+DEFAULT_TIMEOUT = 300
 
 class LLMClient(ABC):
     """LLM客户端抽象基类"""
