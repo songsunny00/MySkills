@@ -205,12 +205,15 @@ class PlotDesignStage(GenerationStage):
         """执行情节设计"""
         template_content = self.template_manager.get_template_content("plot_design", self.project.genre)
 
+        # 构建角色摘要（避免提示词过长）
+        characters_summary = self._build_characters_summary()
+
         prompt = self.template_manager.render_string(
             template_content,
             genre=self.project.genre,
             target_word_count=self.project.target_word_count,
             world_building=self.project.world_building,
-            characters=self.project.characters,
+            characters=characters_summary,
             user_input=user_input or ""
         )
 
@@ -221,6 +224,28 @@ class PlotDesignStage(GenerationStage):
         plot_file.write_text(plot_design, encoding='utf-8')
 
         return plot_design
+
+    def _build_characters_summary(self) -> str:
+        """构建角色摘要（每个角色取前500字）"""
+        summaries = []
+        for i, char in enumerate(self.project.characters):
+            char_name = self._extract_character_name(char)
+            summary = f"### {i+1}. {char_name}\n{char[:500]}..."
+            summaries.append(summary)
+        return "\n\n".join(summaries)
+
+    def _extract_character_name(self, content: str) -> str:
+        """从内容中提取角色名称"""
+        lines = content.split('\n')
+        for line in lines[:10]:
+            if '姓名' in line or '名字' in line or '**姓名**' in line:
+                parts = line.split('：')
+                if len(parts) < 2:
+                    parts = line.split(':')
+                if len(parts) >= 2:
+                    name = parts[1].strip().replace('*', '').replace('#', '').replace('`', '')
+                    return name
+        return f"角色{len(self.project.characters)}"
 
 
 class SupplementaryCharacterStage(GenerationStage):
