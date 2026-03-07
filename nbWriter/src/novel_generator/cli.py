@@ -47,6 +47,7 @@ def list_projects(output_dir: Path):
                 print(f"  [{len(projects)+1}] {data['project_id']}")
                 print(f"      类型: {data.get('genre', '未知')}")
                 print(f"      目标字数: {data.get('target_word_count', '未知')}")
+                print(f"      每章字数: {data.get('words_per_chapter', 2000)}")
                 print(f"      已生成章节: {chapter_count}")
                 print(f"      当前阶段: {data.get('current_stage', '未知')}")
                 print()
@@ -182,6 +183,10 @@ async def main():
     word_count_input = input("字数: ").strip()
     target_word_count = int(word_count_input) if word_count_input else 60000
 
+    print("\n请输入每章字数（默认2000）:")
+    wpc_input = input("每章字数: ").strip()
+    words_per_chapter = int(wpc_input) if wpc_input else 2000
+
     print("\n" + "="*60)
     print("开始生成小说...")
     print("="*60 + "\n")
@@ -193,6 +198,7 @@ async def main():
             genre=genre,
             mode=mode,
             target_word_count=target_word_count,
+            words_per_chapter=words_per_chapter,
             on_progress=print_progress,
             on_stage_complete=on_stage_complete
         )

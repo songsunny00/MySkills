@@ -10,6 +10,7 @@ from .stages import (
     WorldBuildingStage,
     CharacterCreationStage,
     PlotDesignStage,
+    SupplementaryCharacterStage,
     OutlineGenerationStage,
     ChapterGenerationStage,
     PolishStage
@@ -33,6 +34,7 @@ class NovelGenerator:
         genre: NovelGenre,
         mode: GenerationMode,
         target_word_count: int = 60000,
+        words_per_chapter: int = 2000,
         project_id: Optional[str] = None,
         on_progress: Optional[Callable] = None,
         on_stage_complete: Optional[Callable] = None,
@@ -50,7 +52,8 @@ class NovelGenerator:
             project_id=project_id,
             genre=genre,
             mode=mode,
-            target_word_count=target_word_count
+            target_word_count=target_word_count,
+            words_per_chapter=words_per_chapter
         )
 
         # 创建上下文管理器
@@ -82,20 +85,27 @@ class NovelGenerator:
         if on_stage_complete:
             await on_stage_complete("plot", plot_design)
 
-        # 阶段4: 大纲生成
+        # 阶段4: 补充配角
+        supplementary_stage = SupplementaryCharacterStage(project, ctx, self.llm_client, self.template_manager)
+        supplementary_chars = await supplementary_stage.run(on_progress=on_progress)
+
+        if on_stage_complete:
+            await on_stage_complete("supplementary_characters", supplementary_chars)
+
+        # 阶段5: 大纲生成
         outline_stage = OutlineGenerationStage(project, ctx, self.llm_client, self.template_manager)
         outline = await outline_stage.run(on_progress=on_progress)
 
         if on_stage_complete:
             await on_stage_complete("outline", outline)
 
-        # 阶段5: 章节生成（智能策略）
-        chapter_count = target_word_count // 2000
+        # 阶段6: 章节生成（智能策略）
+        chapter_count = target_word_count // words_per_chapter
         await self._generate_chapters_smart(
             project, ctx, chapter_count, on_progress, on_stage_complete
         )
 
-        # 阶段6: 润色与去AI化（可选）
+        # 阶段7: 润色与去AI化（可选）
         if enable_polish:
             if on_progress:
                 on_progress("开始润色与去AI化处理...")
@@ -244,7 +254,19 @@ class NovelGenerator:
             if on_progress:
                 on_progress("✓ 情节设计已完成")
 
-        # 阶段4: 大纲生成
+        # 阶段4: 补充配角
+        if stage_status.get("supplementary_characters") != "completed" and stage_status.get("补充配角") != "completed":
+            if on_progress:
+                on_progress("检测到补充配角未完成，开始生成...")
+            supplementary_stage = SupplementaryCharacterStage(project, ctx, self.llm_client, self.template_manager)
+            supplementary_chars = await supplementary_stage.run(on_progress=on_progress)
+            if on_stage_complete:
+                await on_stage_complete("supplementary_characters", supplementary_chars)
+        else:
+            if on_progress:
+                on_progress("✓ 补充配角已完成")
+
+        # 阶段5: 大纲生成
         if stage_status.get("outline") != "completed" and stage_status.get("大纲生成") != "completed":
             if on_progress:
                 on_progress("检测到大纲未完成，开始生成...")
@@ -256,8 +278,8 @@ class NovelGenerator:
             if on_progress:
                 on_progress("✓ 大纲已完成")
 
-        # 阶段5: 章节生成（智能续传）
-        chapter_count = project.target_word_count // 2000
+        # 阶段6: 章节生成（智能续传）
+        chapter_count = project.target_word_count // project.words_per_chapter
         generated_chapters = ctx.get_generated_chapters()
         missing_chapters = ctx.get_missing_chapters(chapter_count)
 
@@ -274,7 +296,7 @@ class NovelGenerator:
             if on_progress:
                 on_progress("✓ 所有章节已完成")
 
-        # 阶段6: 润色与去AI化（可选）
+        # 阶段7: 润色与去AI化（可选）
         if enable_polish:
             polished_chapters = ctx.get_polished_chapters()
             if len(polished_chapters) < len(generated_chapters):

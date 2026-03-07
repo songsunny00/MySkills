@@ -1,6 +1,6 @@
 from pathlib import Path
 import json
-from typing import Optional
+from typing import Optional, Callable
 from .models import NovelProject, StageStatus
 from datetime import datetime
 
@@ -94,10 +94,20 @@ class ContextManager:
         if self.project.world_building:
             summary_parts.append(f"## 世界观\n{self.project.world_building[:500]}...")
 
+        # 优先从 project.characters 取，若为空则从磁盘角色文件读取
         if self.project.characters:
             summary_parts.append("## 主要角色")
             for char in self.project.characters[:3]:
                 summary_parts.append(f"- {char.name}: {char.personality[:100]}")
+        else:
+            char_dir = self.project_dir / "characters"
+            if char_dir.exists():
+                char_files = sorted(char_dir.glob("*.md"))
+                if char_files:
+                    summary_parts.append("## 主要角色")
+                    for char_file in char_files[:3]:
+                        content = char_file.read_text(encoding='utf-8')
+                        summary_parts.append(content[:600])
 
         return "\n\n".join(summary_parts)
 

@@ -62,6 +62,7 @@ class NovelProject(BaseModel):
     genre: NovelGenre
     mode: GenerationMode
     target_word_count: int
+    words_per_chapter: int = 2000
 
     # 生成内容
     world_building: str = ""

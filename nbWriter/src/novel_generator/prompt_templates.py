@@ -20,6 +20,29 @@ class PromptTemplateManager:
         template = Template(template_str)
         return template.render(**kwargs)
 
+    def get_template_content(self, template_name: str, genre: Optional[NovelGenre] = None) -> str:
+        """获取模板内容（优先使用genre专用模板，否则使用通用模板，最后使用内置模板）
+
+        查找顺序：
+        1. templates/{genre_value}/{template_name}.jinja2
+        2. templates/{template_name}.jinja2
+        3. BUILTIN_TEMPLATES[template_name]
+        """
+        # 1. 尝试genre专用模板
+        if genre:
+            genre_value = genre.value if hasattr(genre, 'value') else str(genre)
+            genre_template = self.templates_dir / genre_value / f"{template_name}.jinja2"
+            if genre_template.exists():
+                return genre_template.read_text(encoding='utf-8')
+
+        # 2. 尝试通用模板
+        generic_template = self.templates_dir / f"{template_name}.jinja2"
+        if generic_template.exists():
+            return generic_template.read_text(encoding='utf-8')
+
+        # 3. 使用内置模板
+        return BUILTIN_TEMPLATES.get(template_name, "")
+
 
 # 内置模板（如果文件不存在则使用）
 BUILTIN_TEMPLATES = {

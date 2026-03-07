@@ -49,8 +49,10 @@ class ProjectConfig(BaseModel):
     @classmethod
     def create(cls, project_root: str):
         root = Path(project_root)
+        # 模板目录应该在包内部，而不是项目根目录
+        templates_dir = Path(__file__).parent / "templates"
         return cls(
             project_root=root,
-            templates_dir=root / "templates",
+            templates_dir=templates_dir,
             output_dir=root / "output"
         )

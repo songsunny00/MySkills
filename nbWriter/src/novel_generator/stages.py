@@ -8,24 +8,43 @@ from .prompt_templates import get_template_content, PromptTemplateManager
 from pathlib import Path
 
 
+_CN_DIGITS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+_CN_UNITS = ['', '十', '百']
+
+def _int_to_cn(n: int) -> str:
+    """将整数转为中文数字（支持1-999）"""
+    if n < 10:
+        return _CN_DIGITS[n]
+    if n < 20:
+        return '十' + (_CN_DIGITS[n % 10] if n % 10 != 0 else '')
+    if n < 100:
+        tens = _CN_DIGITS[n // 10] + '十'
+        ones = _CN_DIGITS[n % 10] if n % 10 != 0 else ''
+        return tens + ones
+    hundreds = _CN_DIGITS[n // 100] + '百'
+    remainder = n % 100
+    if remainder == 0:
+        return hundreds
+    if remainder < 10:
+        return hundreds + '零' + _CN_DIGITS[remainder]
+    return hundreds + _int_to_cn(remainder)
+
+
 def extract_chapter_title(outline: str, chapter_number: int) -> Optional[str]:
     """从大纲中提取章节标题
 
     支持的格式：
-    - ## 第X章：标题
+    - ## 第X章：标题（阿拉伯数字）
+    - ## 第一章：标题（中文数字）
     - ## 第X章: 标题
     - ## 第X章 标题
-
-    Args:
-        outline: 大纲文本
-        chapter_number: 章节编号
-
-    Returns:
-        提取到的标题，如果未找到则返回 None
     """
+    cn_num = _int_to_cn(chapter_number)
+    # 同时匹配阿拉伯数字和中文数字
+    num_pattern = f"(?:{chapter_number}|{cn_num})"
     patterns = [
-        rf"##\s*第{chapter_number}章[：:]\s*(.+?)(?:\n|$)",
-        rf"##\s*第{chapter_number}章\s+(.+?)(?:\n|$)",
+        rf"##\s*第{num_pattern}章[：:]\s*(.+?)(?:\n|$)",
+        rf"##\s*第{num_pattern}章\s+(.+?)(?:\n|$)",
     ]
 
     for pattern in patterns:
@@ -102,7 +121,7 @@ class WorldBuildingStage(GenerationStage):
 
     async def execute(self, user_input: Optional[str] = None) -> str:
         """执行世界观生成"""
-        template_content = get_template_content("worldbuilding")
+        template_content = self.template_manager.get_template_content("worldbuilding", self.project.genre)
 
         prompt = self.template_manager.render_string(
             template_content,
@@ -126,24 +145,25 @@ class CharacterCreationStage(GenerationStage):
         return "角色设定"
 
     async def execute(self, user_input: Optional[str] = None) -> list:
-        """执行角色生成"""
-        template_content = get_template_content("character_creation")
+        """执行核心角色生成（4个）"""
+        template_content = self.template_manager.get_template_content("character_creation", self.project.genre)
 
-        # 生成主角
-        protagonist = await self._create_character("protagonist", template_content, user_input)
+        # 按模板定义的角色类型生成核心4人
+        core_roles = [
+            "protagonist",        # 女主
+            "male_protagonist",   # 男主
+            "supporting",         # 配角1（林杳或谷小满）
+            "supporting"          # 配角2（林杳或谷小满）
+        ]
 
-        # 生成配角（2-3个）
-        supporting_chars = []
-        for i in range(2):
-            char = await self._create_character("supporting", template_content)
-            supporting_chars.append(char)
+        characters = []
+        for i, role in enumerate(core_roles):
+            if self.on_progress:
+                self.on_progress(f"正在生成核心角色 {i+1}/{len(core_roles)}...")
+            char = await self._create_character(role, template_content, user_input if i == 0 else None)
+            characters.append(char)
 
-        # 生成反派
-        antagonist = await self._create_character("antagonist", template_content)
-
-        all_characters = [protagonist] + supporting_chars + [antagonist]
-
-        return all_characters
+        return characters
 
     async def _create_character(self, role: str, template_content: str, user_input: Optional[str] = None) -> str:
         """创建单个角色"""
@@ -183,7 +203,7 @@ class PlotDesignStage(GenerationStage):
 
     async def execute(self, user_input: Optional[str] = None) -> str:
         """执行情节设计"""
-        template_content = get_template_content("plot_design")
+        template_content = self.template_manager.get_template_content("plot_design", self.project.genre)
 
         prompt = self.template_manager.render_string(
             template_content,
@@ -203,6 +223,91 @@ class PlotDesignStage(GenerationStage):
         return plot_design
 
 
+class SupplementaryCharacterStage(GenerationStage):
+    """补充配角生成阶段"""
+
+    def get_stage_name(self) -> str:
+        return "补充配角"
+
+    async def execute(self, user_input: Optional[str] = None) -> list:
+        """根据情节设计补充配角"""
+        template_content = self.template_manager.get_template_content(
+            "supplementary_characters", self.project.genre
+        )
+
+        # 构建核心角色摘要
+        core_chars_summary = "\n\n".join([
+            f"### {i+1}. {self._extract_name(char)}\n{char[:300]}..."
+            for i, char in enumerate(self.project.characters[:4])
+        ])
+
+        # 让LLM分析情节，决定需要哪些配角
+        prompt = self.template_manager.render_string(
+            template_content,
+            world_building=self.project.world_building[:1000],  # 摘要
+            core_characters=core_chars_summary,
+            plot_design=self._get_plot_summary(),
+            target_word_count=self.project.target_word_count
+        )
+
+        if self.on_progress:
+            self.on_progress("正在分析情节并生成补充配角...")
+
+        # LLM返回需要的配角列表和每个配角的档案
+        response = await self.llm.generate(prompt)
+
+        # 解析并保存每个配角
+        supplementary_chars = self._parse_characters(response)
+
+        if self.on_progress:
+            self.on_progress(f"生成了 {len(supplementary_chars)} 个补充配角")
+
+        for char_name, char_content in supplementary_chars:
+            self.ctx.save_character(char_name, char_content)
+            self.project.characters.append(char_content)
+
+        return [char_content for _, char_content in supplementary_chars]
+
+    def _get_plot_summary(self) -> str:
+        """获取情节摘要"""
+        # 读取情节设计文件
+        plot_file = self.ctx.project_dir / "plot" / "plot_design.md"
+        if plot_file.exists():
+            plot_content = plot_file.read_text(encoding='utf-8')
+            # 返回前2000字作为摘要
+            return plot_content[:2000]
+        return "（情节设计未完成）"
+
+    def _parse_characters(self, response: str) -> list:
+        """解析LLM返回的多个角色（用---分隔）"""
+        characters = []
+        sections = response.split('---')
+
+        for section in sections:
+            section = section.strip()
+            if len(section) < 100:  # 过滤掉太短的片段
+                continue
+
+            # 提取角色名
+            char_name = self._extract_name(section)
+            characters.append((char_name, section))
+
+        return characters
+
+    def _extract_name(self, content: str) -> str:
+        """从内容中提取角色名称"""
+        lines = content.split('\n')
+        for line in lines[:10]:
+            if '姓名' in line or '名字' in line or '**姓名**' in line:
+                parts = line.split('：')
+                if len(parts) < 2:
+                    parts = line.split(':')
+                if len(parts) >= 2:
+                    name = parts[1].strip().replace('*', '').replace('#', '').replace('`', '')
+                    return name
+        return f"配角_{len(self.project.characters)}"
+
+
 class OutlineGenerationStage(GenerationStage):
     """大纲生成阶段"""
 
@@ -212,10 +317,10 @@ class OutlineGenerationStage(GenerationStage):
     async def execute(self, user_input: Optional[str] = None) -> str:
         """执行大纲生成"""
         # 计算章节数
-        chapter_count = self.project.target_word_count // 2000  # 平均每章2000字
-        words_per_chapter = self.project.target_word_count // chapter_count
+        chapter_count = self.project.target_word_count // self.project.words_per_chapter
+        words_per_chapter = self.project.words_per_chapter
 
-        template_content = get_template_content("outline_generation")
+        template_content = self.template_manager.get_template_content("outline_generation", self.project.genre)
 
         # 读取情节设计
         plot_file = self.ctx.project_dir / "plot" / "plot_design.md"
@@ -247,7 +352,7 @@ class ChapterGenerationStage(GenerationStage):
 
     async def execute(self, chapter_number: int, user_input: Optional[str] = None) -> str:
         """执行单章生成"""
-        template_content = get_template_content("chapter_generation")
+        template_content = self.template_manager.get_template_content("chapter_generation", self.project.genre)
 
         # 读取大纲
         outline_file = self.ctx.project_dir / "plot" / "outline.md"
@@ -265,11 +370,27 @@ class ChapterGenerationStage(GenerationStage):
         # 提取该章节的大纲
         chapter_outline = self._extract_chapter_outline(outline, chapter_number)
 
-        # 获取上一章内容
+        # 获取上一章内容（取最后800字，保证角色名可见）
         previous_chapter = self.ctx.get_chapter(chapter_number - 1) if chapter_number > 1 else None
 
-        # 获取上下文摘要
+        # 获取上下文摘要（含角色文件内容）
         context_summary = self.ctx.get_context_summary()
+
+        # 读取角色文件，构建强制角色名约束
+        char_dir = self.ctx.project_dir / "characters"
+        character_constraint = ""
+        if char_dir.exists():
+            char_files = sorted(char_dir.glob("*.md"))
+            if char_files:
+                char_names = []
+                for cf in char_files:
+                    content = cf.read_text(encoding='utf-8')
+                    # 提取姓名行
+                    name_match = re.search(r'\|\s*\*\*姓名\*\*\s*\|\s*(.+?)\s*\|', content)
+                    if name_match:
+                        char_names.append(name_match.group(1).strip())
+                if char_names:
+                    character_constraint = f"\n\n**⚠️ 角色名称约束（必须严格遵守）**：本书的角色名称已经固定，请严格使用以下名称，禁止创造任何其他名字：{', '.join(char_names)}。所有角色称呼必须与角色档案保持一致。\n"
 
         prompt = self.template_manager.render_string(
             template_content,
@@ -277,9 +398,9 @@ class ChapterGenerationStage(GenerationStage):
             chapter_number=chapter_number,
             chapter_title=chapter_title,
             chapter_outline=chapter_outline,
-            context_summary=context_summary,
-            previous_chapter=previous_chapter or "",
-            target_word_count=2000
+            context_summary=context_summary + character_constraint,
+            previous_chapter=(previous_chapter or "")[-800:],
+            target_word_count=self.project.words_per_chapter
         )
 
         chapter_content = await self.llm.generate(prompt)
@@ -294,22 +415,32 @@ class ChapterGenerationStage(GenerationStage):
         return chapter_content
 
     def _extract_chapter_outline(self, outline: str, chapter_number: int) -> str:
-        """从完整大纲中提取指定章节的大纲"""
-        # 简单实现：查找对应章节的内容
+        """从完整大纲中提取指定章节的大纲（同时支持阿拉伯数字和中文数字）"""
+        cn_num = _int_to_cn(chapter_number)
+        # 匹配行中包含 "第{N}章" 或 "第{中文}章" 的行
+        chapter_markers = {f"第{chapter_number}章", f"第{cn_num}章", f"## {chapter_number}"}
+
         lines = outline.split('\n')
         chapter_lines = []
         in_chapter = False
 
         for line in lines:
-            if f"第{chapter_number}章" in line or f"## {chapter_number}" in line:
+            if any(marker in line for marker in chapter_markers):
                 in_chapter = True
                 chapter_lines.append(line)
             elif in_chapter:
-                if line.startswith('##') and chapter_number not in line:
-                    break
+                # 遇到下一章节标题则停止
+                if line.startswith('##') and not any(marker in line for marker in chapter_markers):
+                    # 检查是否是下一章
+                    next_markers = {f"第{chapter_number+1}章", f"第{_int_to_cn(chapter_number+1)}章"}
+                    if any(m in line for m in next_markers):
+                        break
+                    # 也检查是否是其他章节（非本章）
+                    if re.search(r'第[零一二三四五六七八九十百\d]+章', line):
+                        break
                 chapter_lines.append(line)
 
-        return '\n'.join(chapter_lines) if chapter_lines else f"第{chapter_number}章大纲"
+        return '\n'.join(chapter_lines) if chapter_lines else f"第{chapter_number}章大纲（未找到详细大纲）"
 
 
 class PolishStage(GenerationStage):
@@ -320,7 +451,7 @@ class PolishStage(GenerationStage):
 
     async def execute(self, user_input: Optional[str] = None) -> dict:
         """执行章节润色，去除AI痕迹"""
-        template_content = get_template_content("polish")
+        template_content = self.template_manager.get_template_content("polish", self.project.genre)
 
         # 获取所有章节
         chapters_dir = self.ctx.project_dir / "chapters"
