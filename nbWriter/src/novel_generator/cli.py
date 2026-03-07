@@ -69,7 +69,12 @@ async def resume_project(project_id: str, project_config: ProjectConfig, llm_con
     print("是否更新已有章节的标题？")
     print("1. 是（推荐，统一格式）")
     print("2. 否（保持原样）")
-    update_titles_choice = input("\n请输入编号（默认1）: ").strip() or "1"
+
+    while True:
+        update_titles_choice = input("\n请输入编号（默认1）: ").strip() or "1"
+        if update_titles_choice in ["1", "2"]:
+            break
+        print("⚠️  请输入 1 或 2")
 
     if update_titles_choice == "1":
         outline_file = ctx.project_dir / "plot" / "outline.md"
@@ -85,7 +90,13 @@ async def resume_project(project_id: str, project_config: ProjectConfig, llm_con
     print("是否启用润色与去AI化？")
     print("1. 是（推荐）")
     print("2. 否")
-    polish_choice = input("\n请输入编号（默认1）: ").strip() or "1"
+
+    while True:
+        polish_choice = input("\n请输入编号（默认1）: ").strip() or "1"
+        if polish_choice in ["1", "2"]:
+            break
+        print("⚠️  请输入 1 或 2")
+
     enable_polish = polish_choice == "1"
 
     polish_requirements = None
