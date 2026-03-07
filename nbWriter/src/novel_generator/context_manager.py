@@ -97,19 +97,39 @@ class ContextManager:
         # 优先从 project.characters 取，若为空则从磁盘角色文件读取
         if self.project.characters:
             summary_parts.append("## 主要角色")
-            for char in self.project.characters[:3]:
-                summary_parts.append(f"- {char.name}: {char.personality[:100]}")
+            for char in self.project.characters[:5]:  # 取前5个角色
+                # 处理字符串格式的角色档案
+                if isinstance(char, str):
+                    # 提取角色名和前300字作为摘要
+                    char_name = self._extract_character_name(char)
+                    summary_parts.append(f"### {char_name}\n{char[:300]}...")
+                else:
+                    # 处理 Character 对象（向后兼容）
+                    summary_parts.append(f"- {char.name}: {char.personality[:100]}")
         else:
             char_dir = self.project_dir / "characters"
             if char_dir.exists():
                 char_files = sorted(char_dir.glob("*.md"))
                 if char_files:
                     summary_parts.append("## 主要角色")
-                    for char_file in char_files[:3]:
+                    for char_file in char_files[:5]:
                         content = char_file.read_text(encoding='utf-8')
-                        summary_parts.append(content[:600])
+                        summary_parts.append(f"### {char_file.stem}\n{content[:300]}...")
 
         return "\n\n".join(summary_parts)
+
+    def _extract_character_name(self, content: str) -> str:
+        """从角色档案中提取角色名称"""
+        lines = content.split('\n')
+        for line in lines[:10]:
+            if '姓名' in line or '名字' in line or '**姓名**' in line:
+                parts = line.split('：')
+                if len(parts) < 2:
+                    parts = line.split(':')
+                if len(parts) >= 2:
+                    name = parts[1].strip().replace('*', '').replace('#', '').replace('`', '')
+                    return name
+        return "角色"
 
     def get_generated_chapters(self) -> list[int]:
         """获取已生成的章节列表"""
