@@ -66,7 +66,7 @@ class NovelProject(BaseModel):
 
     # 生成内容
     world_building: str = ""
-    characters: List[Character] = Field(default_factory=list)
+    characters: List[str] = Field(default_factory=list)  # 存储角色档案的markdown文本
     plot_lines: List[PlotLine] = Field(default_factory=list)
     outline: List[ChapterOutline] = Field(default_factory=list)
     chapters: Dict[int, str] = Field(default_factory=dict)

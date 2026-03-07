@@ -157,13 +157,18 @@ async def main():
             return
         
         project_choice = input("\n请输入要恢复的项目编号: ").strip()
+        print(f"[DEBUG] 用户输入: '{project_choice}'")
+        print(f"[DEBUG] 项目列表: {projects}")
         try:
             idx = int(project_choice) - 1
+            print(f"[DEBUG] 转换后的索引: {idx}")
             if 0 <= idx < len(projects):
+                print(f"[DEBUG] 选择的项目: {projects[idx]}")
                 await resume_project(projects[idx], project_config, llm_config)
             else:
                 print("无效的编号")
-        except ValueError:
+        except ValueError as e:
+            print(f"[DEBUG] ValueError: {e}")
             print("请输入有效的数字")
         return
     
