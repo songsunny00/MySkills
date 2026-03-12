@@ -50,37 +50,55 @@ echo $SKILLSMP_API_KEY   # 非空则可直接使用
 
 若未配置，按 Step 2 的决策流程处理（提示用户选择临时提供或永久配置）。
 
+### 准备 API Key（Windows 兼容，去除 \r）
+
+在调用 API 前，始终先执行以下命令获取干净的 Key：
+
+```bash
+SKILLSMP_KEY=$(echo "$SKILLSMP_API_KEY" | tr -d '\r\n')
+```
+
 ### Keyword Search
 
 ```bash
+SKILLSMP_KEY=$(echo "$SKILLSMP_API_KEY" | tr -d '\r\n')
 curl -s "https://skillsmp.com/api/v1/skills/search?q=QUERY&limit=10&sortBy=stars" \
-  -H "Authorization: Bearer $SKILLSMP_API_KEY" | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-if data.get('success'):
-    skills = data['data']['skills']
-    print(f'Found {len(skills)} skills:')
-    for s in skills:
-        print(json.dumps(s, ensure_ascii=False, indent=2))
-else:
-    print('Error:', data.get('error', {}).get('message'))
+  -H "Authorization: Bearer $SKILLSMP_KEY" | node -e "
+let d='';
+process.stdin.on('data',c=>d+=c);
+process.stdin.on('end',()=>{
+  const r=JSON.parse(d);
+  if(r.success){
+    const skills=r.data.skills||[];
+    console.log('Found',skills.length,'skills:');
+    skills.forEach(s=>console.log(JSON.stringify(s,null,2)));
+  } else {
+    console.log('Error:',JSON.stringify(r.error));
+  }
+});
 "
 ```
 
 ### AI 语义搜索（自然语言查询）
 
+> **注意：** `/ai-search` 返回结构与关键词搜索不同，响应为 `data.data[]` 数组，每项含 `skill` 子对象。
+
 ```bash
+SKILLSMP_KEY=$(echo "$SKILLSMP_API_KEY" | tr -d '\r\n')
 curl -s "https://skillsmp.com/api/v1/skills/ai-search?q=QUERY" \
-  -H "Authorization: Bearer $SKILLSMP_API_KEY" | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-if data.get('success'):
-    skills = data['data']['skills']
-    print(f'Found {len(skills)} skills:')
-    for s in skills:
-        print(json.dumps(s, ensure_ascii=False, indent=2))
-else:
-    print('Error:', data.get('error', {}).get('message'))
+  -H "Authorization: Bearer $SKILLSMP_KEY" | node -e "
+let d='';
+process.stdin.on('data',c=>d+=c);
+process.stdin.on('end',()=>{
+  const r=JSON.parse(d);
+  if(r.success){
+    const items=r.data.data||[];
+    console.log('Found',items.length,'results:');
+    items.forEach(item=>console.log(JSON.stringify(item.skill,null,2)));
+  } else {
+    console.log('Error:',JSON.stringify(r.error));
+  }
+});
 "
 ```
 
@@ -135,9 +153,11 @@ skillsmp.com 搜索需要 API Key，当前未检测到 SKILLSMP_API_KEY。
 你希望怎么做？
 ```
 
-用户提供临时 Key 后，将其赋值给变量使用（不持久化）：
+用户提供临时 Key 后，将其赋值并去除多余空白（不持久化）：
 ```bash
-SKILLSMP_API_KEY="用户提供的key" curl -s "https://skillsmp.com/api/v1/skills/search?q=QUERY..." ...
+SKILLSMP_KEY=$(echo "用户提供的key" | tr -d '\r\n')
+curl -s "https://skillsmp.com/api/v1/skills/search?q=QUERY..." \
+  -H "Authorization: Bearer $SKILLSMP_KEY" | node -e "..."
 ```
 
 - 关键词查询 → `/api/v1/skills/search?q=keyword&sortBy=stars`
