@@ -1,6 +1,6 @@
 # find-skills
 
-[中文](README.md) | **English**
+[zh-CN](README.md) | **English**
 
 > A customized version of `find-skills` based on [vercel-labs/skills](https://github.com/vercel-labs/skills)
 
@@ -14,14 +14,14 @@
 
 ## Original Features
 
-| Feature | Description |
-|---------|-------------|
-| Trigger detection | Detects user queries like "how do I do X" or "is there a skill for X" and activates the skill discovery flow |
-| CLI search | Searches the skills.sh registry by keyword via `npx skills find [query]` |
-| Result display | Outputs skill name, install command (`npx skills add`), and detail link |
-| One-click install | Provides `npx skills add <package> -g -y` to help users install skills |
+| Feature            | Description                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Trigger detection  | Detects user queries like "how do I do X" or "is there a skill for X" and activates the skill discovery flow       |
+| CLI search         | Searches the skills.sh registry by keyword via `npx skills find [query]`                                           |
+| Result display     | Outputs skill name, install command (`npx skills add`), and detail link                                            |
+| One-click install  | Provides `npx skills add <package> -g -y` to help users install skills                                             |
 | Not found handling | When no results are found, offers direct assistance or guides users to create custom skills with `npx skills init` |
-| Category reference | Built-in category table (Web Dev, Testing, DevOps, Docs, Design, etc.) to assist keyword selection |
+| Category reference | Built-in category table (Web Dev, Testing, DevOps, Docs, Design, etc.) to assist keyword selection                 |
 
 ---
 
@@ -33,10 +33,10 @@ The original only supports skills.sh CLI search. This fork also integrates the [
 
 **Two API endpoints:**
 
-| Endpoint | Use case |
-|----------|----------|
+| Endpoint                                           | Use case                                       |
+| -------------------------------------------------- | ---------------------------------------------- |
 | `GET /api/v1/skills/search?q=keyword&sortBy=stars` | When keywords are clear (react, testing, etc.) |
-| `GET /api/v1/skills/ai-search?q=description` | When describing needs in natural language |
+| `GET /api/v1/skills/ai-search?q=description`       | When describing needs in natural language      |
 
 **Authentication:** `Authorization: Bearer $SKILLSMP_API_KEY`
 
@@ -53,6 +53,7 @@ When `SKILLSMP_API_KEY` is not configured, instead of silently skipping, the ski
 ```
 
 **Permanent configuration example (`~/.claude/settings.json`):**
+
 ```json
 {
   "env": {
@@ -88,11 +89,11 @@ From skillsmp.com:
 
 ## Comparison: Original vs Fork
 
-| Feature | Original | This Fork |
-|---------|----------|-----------|
-| Search sources | skills.sh (CLI) | skills.sh + skillsmp.com (API) |
-| Search modes | Keyword only | Keyword + AI semantic search |
-| API Key handling | None | Guides user with 3 options when not configured |
-| User control | Cannot skip sources | Can explicitly skip skillsmp |
-| Result display | Single source | Dual source, merged with labels |
-| Rate limit notice | None | Shows skillsmp 500/day limit |
+| Feature           | Original            | This Fork                                      |
+| ----------------- | ------------------- | ---------------------------------------------- |
+| Search sources    | skills.sh (CLI)     | skills.sh + skillsmp.com (API)                 |
+| Search modes      | Keyword only        | Keyword + AI semantic search                   |
+| API Key handling  | None                | Guides user with 3 options when not configured |
+| User control      | Cannot skip sources | Can explicitly skip skillsmp                   |
+| Result display    | Single source       | Dual source, merged with labels                |
+| Rate limit notice | None                | Shows skillsmp 500/day limit                   |
