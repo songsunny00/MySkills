@@ -1,10 +1,10 @@
 ---
-name: translate-skills 技能汉化
+name: translate-skills
 description: 当用户想为 Skills 批量添加中文翻译时使用，支持全局 agent 目录（~/.claude/skills、~/.cursor/skills、~/.trae-cn/skills 等）以及当前项目目录下的 .claude/skills、.cursor/skills 等。适用场景：用户说"给 skills 加中文"、"汉化所有 skill"、"翻译当前项目的 skill"。
 license: MIT
 ---
 
-# translate-skills 技能汉化
+# translate-skills
 
 ## 概述
 
@@ -180,3 +180,7 @@ description: 当用户...（无引号）
 | 修改了 frontmatter 之外的内容        | 替换范围过大                                   | 严格限定在 `---` 之间的两行                                               |
 | description 写入后换行丢失           | 引号格式替换时 `\n` 被吞                       | 替换后检查 description 末尾是否有换行，若无则补上                         |
 | description 末尾出现 `\x01` 控制字符 | Python `re.sub` 中 `\1` 反向引用被误当字面字符 | 写入后用 `repr()` 检查原始字节，发现则 `content.replace('\x01', '')` 清除 |
+
+## 来源与更新
+
+- GitHub: https://github.com/songsunny00/MySkills/tree/main/skills/find-skills
