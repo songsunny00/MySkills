@@ -1,6 +1,6 @@
 # find-skills
 
-**中文** | [English](README.en.md)
+**中文** | [EN](README.en.md)
 
 > 基于 [vercel-labs/skills](https://github.com/vercel-labs/skills) 的 `find-skills` 改造版本
 
@@ -14,14 +14,14 @@
 
 ## 原版功能
 
-| 功能 | 说明 |
-|------|------|
-| 触发场景识别 | 识别用户"如何做 X"、"有没有 skill 做 X"等场景，自动启用 skill 查找流程 |
-| CLI 搜索 | 通过 `npx skills find [query]` 在 skills.sh 注册表中关键词搜索 |
-| 结果展示 | 输出 skill 名称、安装命令（`npx skills add`）、详情链接 |
-| 一键安装 | 提供 `npx skills add <package> -g -y` 命令帮助用户安装 |
-| 未找到处理 | 搜索无结果时，提供直接帮助或引导用户用 `npx skills init` 创建自定义 skill |
-| 分类参考表 | 内置常见分类（Web 开发、测试、DevOps、文档、设计等）辅助搜索关键词选择 |
+| 功能         | 说明                                                                      |
+| ------------ | ------------------------------------------------------------------------- |
+| 触发场景识别 | 识别用户"如何做 X"、"有没有 skill 做 X"等场景，自动启用 skill 查找流程    |
+| CLI 搜索     | 通过 `npx skills find [query]` 在 skills.sh 注册表中关键词搜索            |
+| 结果展示     | 输出 skill 名称、安装命令（`npx skills add`）、详情链接                   |
+| 一键安装     | 提供 `npx skills add <package> -g -y` 命令帮助用户安装                    |
+| 未找到处理   | 搜索无结果时，提供直接帮助或引导用户用 `npx skills init` 创建自定义 skill |
+| 分类参考表   | 内置常见分类（Web 开发、测试、DevOps、文档、设计等）辅助搜索关键词选择    |
 
 ---
 
@@ -33,10 +33,10 @@
 
 **两个 API 端点：**
 
-| 端点 | 适用场景 |
-|------|----------|
-| `GET /api/v1/skills/search?q=keyword&sortBy=stars` | 关键词明确时（react、testing 等） |
-| `GET /api/v1/skills/ai-search?q=description` | 自然语言描述需求时（"帮我写小说"） |
+| 端点                                               | 适用场景                           |
+| -------------------------------------------------- | ---------------------------------- |
+| `GET /api/v1/skills/search?q=keyword&sortBy=stars` | 关键词明确时（react、testing 等）  |
+| `GET /api/v1/skills/ai-search?q=description`       | 自然语言描述需求时（"帮我写小说"） |
 
 **认证方式：** `Authorization: Bearer $SKILLSMP_API_KEY`
 
@@ -53,6 +53,7 @@
 ```
 
 **永久配置示例（`~/.claude/settings.json`）：**
+
 ```json
 {
   "env": {
@@ -88,11 +89,11 @@
 
 ## 改造对比总览
 
-| 特性 | 原版 | 改造版 |
-|------|------|--------|
-| 搜索来源 | skills.sh（CLI） | skills.sh + skillsmp.com（API） |
-| 搜索方式 | 关键词 | 关键词 + AI 语义搜索 |
-| API Key 处理 | 无 | 未配置时引导用户三选一 |
-| 用户控制 | 无法跳过来源 | 可明确跳过 skillsmp |
-| 结果展示 | 单源 | 双源合并，注明来源 |
-| 速率限制提示 | 无 | 提示 skillsmp 每日 500 次上限 |
+| 特性         | 原版             | 改造版                          |
+| ------------ | ---------------- | ------------------------------- |
+| 搜索来源     | skills.sh（CLI） | skills.sh + skillsmp.com（API） |
+| 搜索方式     | 关键词           | 关键词 + AI 语义搜索            |
+| API Key 处理 | 无               | 未配置时引导用户三选一          |
+| 用户控制     | 无法跳过来源     | 可明确跳过 skillsmp             |
+| 结果展示     | 单源             | 双源合并，注明来源              |
+| 速率限制提示 | 无               | 提示 skillsmp 每日 500 次上限   |
