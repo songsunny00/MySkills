@@ -1,5 +1,7 @@
 # find-skills
 
+**中文** | [English](README.en.md)
+
 > 基于 [vercel-labs/skills](https://github.com/vercel-labs/skills) 的 `find-skills` 改造版本
 
 ## 原版来源

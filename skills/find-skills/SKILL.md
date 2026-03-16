@@ -38,23 +38,23 @@ skillsmp.com provides a dedicated search API with two modes.
 
 ### API Key Configuration
 
-优先读取环境变量 `SKILLSMP_API_KEY`：
+First check for the `SKILLSMP_API_KEY` environment variable:
 
 ```bash
-echo $SKILLSMP_API_KEY   # 非空则可直接使用
+echo $SKILLSMP_API_KEY   # if non-empty, it can be used directly
 ```
 
-**配置方式（持久化）：** 在 `~/.claude/settings.json` 的 `env` 字段中添加：
+**Persistent configuration:** Add to the `env` field in `~/.claude/settings.json`:
 
 ```json
 "SKILLSMP_API_KEY": "sk_live_skillsmp_xxx"
 ```
 
-若未配置，按 Step 2 的决策流程处理（提示用户选择临时提供或永久配置）。
+If not configured, follow the decision flow in Step 2 (prompt the user to provide it temporarily or configure it permanently).
 
-### 准备 API Key（Windows 兼容，去除 \r）
+### Prepare API Key (Windows-compatible, strip \r)
 
-在调用 API 前，始终先执行以下命令获取干净的 Key：
+Before calling the API, always run the following command to get a clean key:
 
 ```bash
 SKILLSMP_KEY=$(echo "$SKILLSMP_API_KEY" | tr -d '\r\n')
@@ -81,9 +81,9 @@ process.stdin.on('end',()=>{
 "
 ```
 
-### AI 语义搜索（自然语言查询）
+### AI Semantic Search (Natural Language Query)
 
-> **注意：** `/ai-search` 返回结构与关键词搜索不同，响应为 `data.data[]` 数组，每项含 `skill` 子对象。
+> **Note:** The `/ai-search` response structure differs from keyword search — the response contains a `data.data[]` array where each item has a `skill` sub-object.
 
 ```bash
 SKILLSMP_KEY=$(echo "$SKILLSMP_API_KEY" | tr -d '\r\n')
@@ -104,16 +104,16 @@ process.stdin.on('end',()=>{
 "
 ```
 
-**解析输出说明：** 命令输出原始 JSON 对象，Claude 根据实际字段动态提取名称、描述、安装命令等信息展示给用户。常见字段包括 `name`、`description`、`installCommand`、`packageId`、`stars`、`author` 等，以实际响应为准。
+**Output parsing:** Commands output raw JSON objects. Claude dynamically extracts the name, description, install command, and other info from actual fields. Common fields include `name`, `description`, `installCommand`, `packageId`, `stars`, `author`, etc. — use whatever the actual response returns.
 
-**选择哪种搜索：**
+**Which search to use:**
 
-| 情况                             | 使用                |
-| -------------------------------- | ------------------- |
-| 关键词明确（react, testing）     | `/skills/search`    |
-| 自然语言描述需求（"帮我写小说"） | `/skills/ai-search` |
+| Situation                                          | Use                 |
+| -------------------------------------------------- | ------------------- |
+| Clear keywords (react, testing)                    | `/skills/search`    |
+| Natural language description ("help me write a novel") | `/skills/ai-search` |
 
-**速率限制：** 每个 API Key 每日 500 次（UTC 午夜重置）
+**Rate limit:** 500 requests per API key per day (resets at UTC midnight)
 
 ## How to Help Users Find Skills
 
@@ -123,63 +123,63 @@ Identify: domain, specific task, whether a skill likely exists.
 
 ### Step 2: Search Both Sources in Parallel
 
-**skills.sh CLI（始终执行）：**
+**skills.sh CLI (always run):**
 
 ```bash
 npx skills find [keyword]
 ```
 
-**skillsmp.com（按以下决策流程执行）：**
+**skillsmp.com (follow the decision flow below):**
 
 ```
-用户是否明确说"不需要查 skillsmp" 或 "只查 skills.sh"？
-  → 是：跳过 skillsmp，仅展示 skills.sh 结果
-  → 否：继续
+Did the user explicitly say "skip skillsmp" or "only use skills.sh"?
+  → Yes: skip skillsmp, show only skills.sh results
+  → No: continue
 
-检查 SKILLSMP_API_KEY 是否已配置：
-  → 已配置：直接调用 API 搜索
-  → 未配置：告知用户并询问意向（见下方提示模板）
+Check if SKILLSMP_API_KEY is configured:
+  → Configured: call the API directly
+  → Not configured: inform the user and ask for their preference (see prompt template below)
 ```
 
-**API Key 未配置时的提示模板：**
+**Prompt template when API key is not configured:**
 
 ```
-skillsmp.com 搜索需要 API Key，当前未检测到 SKILLSMP_API_KEY。
+Searching skillsmp.com requires an API Key, but SKILLSMP_API_KEY was not detected.
 
-你可以选择：
-1. 临时提供：直接告诉我你的 API Key，本次搜索使用
-2. 永久配置：在 ~/.claude/settings.json 的 env 中添加：
+You can choose to:
+1. Provide temporarily: tell me your API Key and I'll use it for this search
+2. Configure permanently: add to the env field in ~/.claude/settings.json:
    "SKILLSMP_API_KEY": "sk_live_skillsmp_xxx"
-   或在终端执行：export SKILLSMP_API_KEY=sk_live_skillsmp_xxx
-3. 跳过：只使用 skills.sh 搜索结果
+   or run in terminal: export SKILLSMP_API_KEY=sk_live_skillsmp_xxx
+3. Skip: use only skills.sh search results
 
-你希望怎么做？
+What would you like to do?
 ```
 
-用户提供临时 Key 后，将其赋值并去除多余空白（不持久化）：
+After the user provides a temporary key, assign it and strip extra whitespace (do not persist):
 
 ```bash
-SKILLSMP_KEY=$(echo "用户提供的key" | tr -d '\r\n')
+SKILLSMP_KEY=$(echo "user-provided-key" | tr -d '\r\n')
 curl -s "https://skillsmp.com/api/v1/skills/search?q=QUERY..." \
   -H "Authorization: Bearer $SKILLSMP_KEY" | node -e "..."
 ```
 
-- 关键词查询 → `/api/v1/skills/search?q=keyword&sortBy=stars`
-- 自然语言查询 → `/api/v1/skills/ai-search?q=description`
+- Keyword query → `/api/v1/skills/search?q=keyword&sortBy=stars`
+- Natural language query → `/api/v1/skills/ai-search?q=description`
 
 ### Step 3: Present Merged Results
 
-展示时注明来源：
+Label results by source when presenting:
 
 ```
-来自 skills.sh:
+From skills.sh:
   vercel-labs/agent-skills@vercel-react-best-practices (198.5K installs)
-  安装: npx skills add vercel-labs/agent-skills@vercel-react-best-practices
-  详情: https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices
+  Install: npx skills add vercel-labs/agent-skills@vercel-react-best-practices
+  Details: https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices
 
-来自 skillsmp.com:
-  react-performance-toolkit — React 性能优化工具集
-  安装: npx skills add xxx/react-performance-toolkit
+From skillsmp.com:
+  react-performance-toolkit — React performance optimization toolkit
+  Install: npx skills add xxx/react-performance-toolkit
 ```
 
 ### Step 4: Offer to Install
@@ -227,4 +227,4 @@ npx skills init my-xyz-skill
 ## Source And Installation
 
 - GitHub: https://github.com/songsunny00/MySkills/tree/main/skills/find-skills
-- Installation：npx skills add https://github.com/songsunny00/MySkills --skill find-skills
+- Installation: npx skills add https://github.com/songsunny00/MySkills --skill find-skills
