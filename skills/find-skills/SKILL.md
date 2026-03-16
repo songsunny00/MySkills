@@ -224,6 +224,7 @@ If this is something you do often, you could create your own skill:
 npx skills init my-xyz-skill
 ```
 
-## 来源与更新
+## Source And Installation
 
 - GitHub: https://github.com/songsunny00/MySkills/tree/main/skills/find-skills
+- Installation：npx skills add https://github.com/songsunny00/MySkills --skill find-skills
