@@ -66,3 +66,31 @@ npx skills add songsunny00/MySkills --skill review-prd standardize-wiki-docs -g 
 ```bash
 npx skills experimental_install
 ```
+
+## Updating
+
+**Update global skills:**
+
+```bash
+npx skills update
+```
+
+**Update project skills (via skills-lock.json):**
+
+```bash
+npx skills experimental_install
+```
+
+**Update both global and project in one step:**
+
+```bash
+npx skills update && npx skills experimental_install
+```
+
+> **Note:** `npx skills update` uses hash comparison to detect changes. If the installed version matches the remote content, it reports "up to date" even after a new push. To force-fetch the latest version, run manually:
+>
+> ```bash
+> # Force update global
+> npx skills add obra/superpowers -g -y
+> npx skills add songsunny00/MySkills --skill review-prd standardize-wiki-docs -g -y
+> ```

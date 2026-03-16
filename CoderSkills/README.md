@@ -66,3 +66,31 @@ npx skills add songsunny00/MySkills --skill review-prd standardize-wiki-docs -g 
 ```bash
 npx skills experimental_install
 ```
+
+## 更新
+
+**更新全局 skills：**
+
+```bash
+npx skills update
+```
+
+**更新项目 skills（基于 skills-lock.json）：**
+
+```bash
+npx skills experimental_install
+```
+
+**一键更新全局 + 项目：**
+
+```bash
+npx skills update && npx skills experimental_install
+```
+
+> **注意：** `npx skills update` 通过 hash 比对判断是否需要更新。若本地已安装版本与远端内容一致（即使远端有新推送），会显示 "up to date"。如需强制拉取最新版本，请手动执行：
+>
+> ```bash
+> # 强制更新全局
+> npx skills add obra/superpowers -g -y
+> npx skills add songsunny00/MySkills --skill review-prd standardize-wiki-docs -g -y
+> ```
