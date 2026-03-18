@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "novel-outline-reviewer": {
+      "source": "songsunny00/MySkills",
+      "sourceType": "github",
+      "computedHash": "1ca40228d65a256c0ea37570b150aafe123c62302186c7d11209133853f97bab"
+    }
+  }
+}
