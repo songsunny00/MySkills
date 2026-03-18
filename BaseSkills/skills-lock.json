@@ -11,6 +11,21 @@
       "sourceType": "github",
       "computedHash": "4c7ee25e1a433f11243570e7e2cce0e284c9f584d5fef7f5f45b1a034d0aac28"
     },
+    "mcp-builder": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "f08cbdec74dba480ec5217363446dae154b7576b8c3d9b4cb17aff234f15973b"
+    },
+    "planning-with-files": {
+      "source": "OthmanAdi/planning-with-files",
+      "sourceType": "github",
+      "computedHash": "1bc96bc1af331f1a852a1434429be4390183c2cb6b758affb4f9104a3b555760"
+    },
+    "skill-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "57f470f512f45bdac598e302bc72fd62bf2b649fc7fad032efe97720149cde4d"
+    },
     "translate-skills": {
       "source": "songsunny00/MySkills",
       "sourceType": "github",
