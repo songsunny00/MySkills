@@ -15,7 +15,10 @@ A foundational skill management collection — for discovering, installing, crea
 | `update-skills` | Update all installed skills globally and/or in the current project in one step | songsunny00/MySkills |
 | `translate-skills` | Batch-add Chinese translations to skills | songsunny00/MySkills |
 | `writing-skills` | Create or edit skills following a test-driven authoring process | obra/superpowers |
+| `skill-creator` | Guided workflow for creating new skills with a complete SKILL.md structure | anthropics/skills |
 | `brainstorming` | Required before any creative work — explore requirements and design before implementation | obra/superpowers |
+| `planning-with-files` | Break multi-step tasks into structured plans with file-based tracking | OthmanAdi/planning-with-files |
+| `mcp-builder` | End-to-end guide for building MCP servers using the Claude API | anthropics/skills |
 
 ## Sources
 
@@ -23,6 +26,8 @@ A foundational skill management collection — for discovering, installing, crea
 |--------|--------|
 | [obra/superpowers](https://github.com/obra/superpowers) | 3 |
 | [songsunny00/MySkills](https://github.com/songsunny00/MySkills) | 3 |
+| [anthropics/skills](https://github.com/anthropics/skills) | 2 |
+| [OthmanAdi/planning-with-files](https://github.com/OthmanAdi/planning-with-files) | 1 |
 
 ## Installation
 
@@ -34,6 +39,12 @@ npx skills add obra/superpowers --skill using-superpowers brainstorming writing-
 
 # From songsunny00/MySkills
 npx skills add songsunny00/MySkills --skill find-skills update-skills translate-skills -g -y
+
+# From anthropics/skills
+npx skills add anthropics/skills --skill skill-creator mcp-builder -g -y
+
+# From OthmanAdi/planning-with-files
+npx skills add OthmanAdi/planning-with-files -g -y
 ```
 
 ## Updating
@@ -49,4 +60,6 @@ npx skills update
 > ```bash
 > npx skills add obra/superpowers --skill using-superpowers brainstorming writing-skills -g -y
 > npx skills add songsunny00/MySkills --skill find-skills update-skills translate-skills -g -y
+> npx skills add anthropics/skills --skill skill-creator mcp-builder -g -y
+> npx skills add OthmanAdi/planning-with-files -g -y
 > ```
