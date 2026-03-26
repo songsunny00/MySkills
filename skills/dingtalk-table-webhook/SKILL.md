@@ -32,7 +32,7 @@ Do not use this skill when:
 
 Before doing anything else:
 1. Read the project config file at `skills/dingtalk-table-webhook/dingtalk-table-webhooks.json`.
-2. If it does not exist, read `skills/dingtalk-table-webhook/dingtalk-table-webhooks.example.json` if present and tell the user to create the real config at `skills/dingtalk-table-webhook/dingtalk-table-webhooks.json`.
+2. If it does not exist, read `skills/dingtalk-table-webhook/dingtalk-table-webhooks.example.json` only as a reference for the expected format if present, tell the user to create the real config at `skills/dingtalk-table-webhook/dingtalk-table-webhooks.json`, and stop execution. Do not proceed to table selection, payload preview, payload build, or webhook send without the real config file.
 3. Do NOT read from `skills-config/dingtalk-table-webhooks.json`. That path must be ignored even if the file exists there.
 4. Never guess the webhook schema. Follow config exactly.
 
@@ -54,6 +54,11 @@ Webhook URL resolution order:
 3. Otherwise stop and ask the user to configure the webhook.
 
 Treat webhook URLs as secrets. Do not echo the full URL back to the user unless they explicitly ask.
+
+### Terminology
+
+- Routing triggers = table-level `triggers` used only to select the target table.
+- Payload trigger field = the optional business field `trigger`, mapped into the payload via `fields.trigger` when that field exists in the selected table config.
 
 ## Default Values
 
@@ -91,13 +96,13 @@ Do not silently ignore an invalid default value. Every config error must be surf
 
 ### 1. Select the target table
 
-Match the user request against configured table triggers.
+Match the user request against configured table triggers. Routing is based only on configured trigger phrases found in the request text; do not invent synonyms or use fuzzy matching.
 
-- If an exact trigger match identifies one table, that table wins over any other non-exact or broader trigger matches.
-- If exactly one table matches a trigger, use it.
+- If both a more specific configured routing trigger phrase and a broader one match the same request (for example `前端分享` and `分享`), the more specific exact phrase match wins.
+- If exactly one table matches a trigger, use that table.
 - If no trigger matches but there is only one table in the config, use that table.
 - If no trigger matches and there are multiple tables, ask the user to choose.
-- If multiple tables match a trigger and no single exact trigger match wins, ask the user to choose.
+- If multiple tables match a trigger and no single more specific exact phrase match wins, ask the user to choose.
 
 This rule ensures that "only a Markdown file" input can still resolve to a table unambiguously when the config has exactly one table.
 
