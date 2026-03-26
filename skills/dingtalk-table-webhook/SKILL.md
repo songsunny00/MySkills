@@ -36,6 +36,8 @@ Before doing anything else:
 3. Do NOT read from `skills-config/dingtalk-table-webhooks.json`. That path must be ignored even if the file exists there.
 4. Never guess the webhook schema. Follow config exactly.
 
+All downstream behavior below assumes the real config file was successfully loaded and validated. If only `skills/dingtalk-table-webhook/dingtalk-table-webhooks.example.json` exists, stop before table selection, payload preview, payload build, or webhook send.
+
 ## Config Rules
 
 Each table config should define:
@@ -78,6 +80,8 @@ A table config may include a `defaults` node at the table level:
 - `defaults.category` — fills `category` when no explicit user input is provided; the value must be one of the options in `fields.category.options`
 - `defaults.trigger` — fills `trigger` when no explicit user input is provided; must be a `string`
 
+In this skill contract, the payload `trigger` field is only type-constrained to `string` unless the selected table config defines stricter semantics elsewhere.
+
 ### Config validation for defaults
 
 Validate these constraints when reading the config. If any constraint is violated, report a config error and block execution:
@@ -98,7 +102,7 @@ Do not silently ignore an invalid default value. Every config error must be surf
 
 Match the user request against configured table triggers. Routing is based only on configured trigger phrases found in the request text; do not invent synonyms or use fuzzy matching.
 
-- If both a more specific configured routing trigger phrase and a broader one match the same request (for example `前端分享` and `分享`), the more specific exact phrase match wins.
+- If both a more specific configured routing trigger phrase and a broader one match the same request (for example `前端分享` and `分享`), the more specific exact phrase match wins. Here, “more specific” means the longer matching configured routing trigger phrase found in the request text.
 - If exactly one table matches a trigger, use that table.
 - If no trigger matches but there is only one table in the config, use that table.
 - If no trigger matches and there are multiple tables, ask the user to choose.
@@ -183,7 +187,7 @@ If both are absent, block and ask the user to provide a sharer (or configure `de
 2. `defaults.category` from config
 3. Hardcoded last-resort: `技术动态` — only if `fields.category` exists with type `enum` and `技术动态` is in its `options`
 
-This hardcoded last-resort is an intentional, narrowly scoped share-record default in this skill contract, not a generic guess for arbitrary table workflows.
+This hardcoded last-resort is an intentional, narrowly scoped share-record compatibility default in this skill contract, not a generic default for arbitrary non-share table workflows.
 
 The final category value must pass exact enum validation regardless of its source.
 
@@ -193,7 +197,7 @@ The final category value must pass exact enum validation regardless of its sourc
 2. `defaults.trigger` from config
 3. Hardcoded last-resort: `前端分享` — only if `fields.trigger` exists with type `string`
 
-This hardcoded last-resort is an intentional, narrowly scoped share-record default in this skill contract, not a generic guess for arbitrary table workflows.
+This hardcoded last-resort is an intentional, narrowly scoped share-record compatibility default in this skill contract, not a generic default for arbitrary non-share table workflows.
 
 If the target table has no `trigger` field in its config, do not inject a trigger value at all.
 
