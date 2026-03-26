@@ -176,11 +176,12 @@
     {
       "id": 16,
       "name": "markdown-example-text-path-not-extracted",
-      "prompt": "我在文档里举个例子，像 Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md 这种写法只是示例，不是这次要提交的文件。帮我记一条分享：标题是《示例文本路径负例》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得。",
-      "expected_output": "1) 示例文本中的路径不应被提取为 markdownFile；2) 不应尝试读取 basic-share.md；3) 仍按原流程判断缺少原始内容来源。",
+      "prompt": "我在文档里举个例子，比如 skills/dingtalk-table-webhook/examples/markdown/basic-share.md 这种路径只是示例，不是这次要提交的文件。帮我记一条分享：标题是《示例文本路径负例》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得。",
+      "expected_output": "1) 示例文本中的路径不应被提取为 markdownFile；2) 不应尝试读取 basic-share.md；3) 仍按原流程判断缺少内容字段。",
       "assertions": [
         "不会从示例文本中提取 markdownFile",
-        "不会尝试读取 basic-share.md"
+        "不会尝试读取 basic-share.md",
+        "维持原有缺字段处理"
       ]
     },
     {

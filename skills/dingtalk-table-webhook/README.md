@@ -98,8 +98,8 @@ Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md
 - `原始内容` 字段由 Markdown 文件内容生成
 - 聊天中的 `内容` 字段会被忽略
 - 若未显式提供，`分享人` 可由 `defaults.sharer` 自动补齐
-- 若未显式提供，`类别` 可优先使用 `defaults.category`
-- 若未显式提供，`触发词` 可优先使用 `defaults.trigger`（前提是表中定义了 `fields.trigger`）
+- 若未显式提供，`类别` 可优先使用 `defaults.category`，否则在分享记录兼容场景下回退为 `技术动态`
+- 若未显式提供，`触发词` 可优先使用 `defaults.trigger`（前提是表中定义了 `fields.trigger`），否则在分享记录兼容场景下回退为 `前端分享`
 - 若未显式提供，`分享时间` 默认使用当天日期（`YYYY-MM-DD`）
 - `标题` 会按“显式标题 -> Markdown 标题 -> Markdown 纯文本首段 -> 文件名”顺序回退
 - 普通图片会被总结为文字描述
