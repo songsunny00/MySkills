@@ -154,7 +154,7 @@ If the explicit label is present but the value is empty, stop and tell the user 
 
 ### 5. Controlled default filling (markdownFile present)
 
-When `markdownFile` is present, perform controlled default filling before the required-field validation step. This is supplementation using only the approved fallback rules below — it is not guessing.
+When `markdownFile` is present, perform controlled default filling before the required-field validation step. If markdown-derived title or content values are needed, do the necessary Markdown parsing/conversion first so those values are available to the fallback rules below; this does not change the approved behavior, only makes the execution order explicit. This is supplementation using only the approved fallback rules below — it is not guessing.
 
 Explicit user input always takes precedence over any default or inferred value.
 
