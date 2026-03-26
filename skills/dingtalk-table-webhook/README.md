@@ -1,6 +1,6 @@
 # dingtalk-table-webhook
 
-**中文** | [EN](README.en.md)
+**中文**
 
 通过钉钉表格自动化 Webhook 新增记录的 Claude Code skill。
 
@@ -139,7 +139,7 @@ Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md
 
 默认配置的触发词包含：`前端分享`、`AI分享`、`分享`。
 
-可在配置文件的 `triggers` 字段自定义。
+可在配置文件的 `triggers` 字段自定义。这里的表级 `triggers` 只用于路由和选择目标表；写入记录时的 `trigger` 是业务字段，由 `fields.trigger` / `defaults.trigger` 控制。在仅 Markdown 或默认补齐场景下，落库的 `trigger` 可能来自配置默认值，而不一定是用户原话。
 
 ---
 
