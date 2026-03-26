@@ -44,10 +44,12 @@ skills/dingtalk-table-webhook/dingtalk-table-webhooks.example.json
 - enum options
 - defaults 默认值规则
 
-当用户显式提供 Markdown 文件路径时，skill 会把生成后的纯文本写入 `content` 对应的目标字段。
+当用户显式提供 Markdown 文件路径，且选中的表配置定义了语义 `content` 字段映射时，skill 会把生成后的纯文本写入该目标字段。
 
-仅在 Markdown 导入流程中，如果提供了 `markdownFile`，skill 可以在 required 阻断前，先根据 defaults 和已文档化的回退规则自动补齐缺失的业务字段。
-该行为只适用于 Markdown-only 场景；无效 defaults 属于配置错误，不能被静默忽略。
+表级 `triggers` 仅用于路由/目标表选择；`fields.trigger` / `defaults.trigger` 表示写入 payload 的可选业务字段。
+
+仅当本次调用显式提供 `markdownFile` 并进入 Markdown 导入流程时，skill 才可以在 required 阻断前，先自动补齐缺失的业务字段。
+此处相关回退规则简述如下：`title` 可来自显式输入、Markdown 标题/正文提取或文件名；`sharer` 可来自显式输入或 `defaults.sharer`；`date` 缺失时可默认当天 `YYYY-MM-DD`；`category` 可来自显式输入、`defaults.category` 或最终兜底 `技术动态`；`trigger` 可来自显式输入、`defaults.trigger` 或最终兜底 `前端分享`。无效 defaults 属于配置错误，不能被静默忽略。
 
 ## defaults 配置说明
 
@@ -75,6 +77,11 @@ skills/dingtalk-table-webhook/dingtalk-table-webhooks.example.json
         "recordsKey": "records",
         "fieldsKey": "fields"
       },
+      "defaults": {
+        "sharer": ["257700519"],
+        "category": "技术动态",
+        "trigger": "前端分享"
+      },
       "fields": {
         "title": {
           "target": "分享标题",
@@ -96,6 +103,11 @@ skills/dingtalk-table-webhook/dingtalk-table-webhooks.example.json
           "type": "enum",
           "required": true,
           "options": ["技术动态", "使用心得", "推荐安利"]
+        },
+        "trigger": {
+          "target": "触发词",
+          "type": "string",
+          "required": false
         },
         "content": {
           "target": "原始内容",
