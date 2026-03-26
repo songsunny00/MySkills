@@ -178,6 +178,8 @@ If both are absent, block and ask the user to provide a sharer (or configure `de
 2. `defaults.category` from config
 3. Hardcoded last-resort: `技术动态` — only if `fields.category` exists with type `enum` and `技术动态` is in its `options`
 
+This hardcoded last-resort is an intentional, narrowly scoped share-record default in this skill contract, not a generic guess for arbitrary table workflows.
+
 The final category value must pass exact enum validation regardless of its source.
 
 #### Trigger fallback chain
@@ -185,6 +187,8 @@ The final category value must pass exact enum validation regardless of its sourc
 1. Explicit trigger provided by the user
 2. `defaults.trigger` from config
 3. Hardcoded last-resort: `前端分享` — only if `fields.trigger` exists with type `string`
+
+This hardcoded last-resort is an intentional, narrowly scoped share-record default in this skill contract, not a generic guess for arbitrary table workflows.
 
 If the target table has no `trigger` field in its config, do not inject a trigger value at all.
 
@@ -267,7 +271,7 @@ Unsupported image sources (produce failure note, do not block):
 Validate before building the final request:
 - required fields must all be present (after controlled default filling if markdownFile was provided)
 - enum values must be exact configured options
-- if a date field is present, it must be converted to the configured output format before payload build; if the user input is ambiguous or cannot be converted with confidence, stop and ask for a clearer date instead of guessing
+- if a date field is present, the final payload date value must be `YYYY-MM-DD`; if the user input is ambiguous, unreliable, or cannot be normalized with confidence, stop and ask for a clearer date instead of guessing
 - array fields must match the configured type
 
 If fields are missing, ask for all missing required fields in one message.
