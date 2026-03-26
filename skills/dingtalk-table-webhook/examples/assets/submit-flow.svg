@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480">
+  <rect width="1200" height="480" fill="#f8fafc" />
+
+  <rect x="60" y="180" width="180" height="80" rx="16" fill="#dbeafe" stroke="#2563eb" stroke-width="3" />
+  <text x="95" y="228" font-size="24" fill="#1e3a8a">读取 Markdown</text>
+
+  <rect x="320" y="180" width="200" height="80" rx="16" fill="#dcfce7" stroke="#16a34a" stroke-width="3" />
+  <text x="365" y="228" font-size="24" fill="#166534">解析图片</text>
+
+  <rect x="620" y="180" width="220" height="80" rx="16" fill="#fef3c7" stroke="#d97706" stroke-width="3" />
+  <text x="663" y="228" font-size="24" fill="#92400e">生成预览 JSON</text>
+
+  <rect x="920" y="80" width="180" height="80" rx="16" fill="#fee2e2" stroke="#dc2626" stroke-width="3" />
+  <text x="955" y="128" font-size="24" fill="#991b1b">停止发送</text>
+
+  <rect x="920" y="280" width="180" height="80" rx="16" fill="#ede9fe" stroke="#7c3aed" stroke-width="3" />
+  <text x="967" y="328" font-size="24" fill="#5b21b6">发送 Webhook</text>
+
+  <line x1="240" y1="220" x2="320" y2="220" stroke="#475569" stroke-width="4" marker-end="url(#arrow)" />
+  <line x1="520" y1="220" x2="620" y2="220" stroke="#475569" stroke-width="4" marker-end="url(#arrow)" />
+  <line x1="840" y1="220" x2="920" y2="120" stroke="#475569" stroke-width="4" marker-end="url(#arrow)" />
+  <line x1="840" y1="220" x2="920" y2="320" stroke="#475569" stroke-width="4" marker-end="url(#arrow)" />
+
+  <text x="845" y="150" font-size="22" fill="#334155">未确认</text>
+  <text x="855" y="290" font-size="22" fill="#334155">已确认</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569" />
+    </marker>
+  </defs>
+</svg>

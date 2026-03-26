@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640">
+  <rect width="960" height="640" fill="#f5f7fb" />
+  <rect x="40" y="40" width="880" height="64" rx="12" fill="#1f2937" />
+  <text x="72" y="82" font-size="28" fill="#ffffff">分享记录表</text>
+
+  <rect x="40" y="132" width="880" height="440" rx="16" fill="#ffffff" stroke="#d1d5db" />
+  <rect x="72" y="176" width="220" height="36" rx="8" fill="#e5e7eb" />
+  <rect x="312" y="176" width="220" height="36" rx="8" fill="#e5e7eb" />
+  <rect x="552" y="176" width="220" height="36" rx="8" fill="#e5e7eb" />
+
+  <text x="72" y="164" font-size="18" fill="#6b7280">分享标题</text>
+  <text x="312" y="164" font-size="18" fill="#6b7280">分享人</text>
+  <text x="552" y="164" font-size="18" fill="#6b7280">分享时间</text>
+
+  <rect x="72" y="264" width="700" height="180" rx="12" fill="#f9fafb" stroke="#d1d5db" />
+  <text x="96" y="300" font-size="20" fill="#111827">原始内容</text>
+  <text x="96" y="338" font-size="16" fill="#374151">Claude Code review PR 的流程总结与实践经验</text>
+
+  <rect x="760" y="500" width="120" height="44" rx="10" fill="#2563eb" />
+  <text x="795" y="529" font-size="18" fill="#ffffff">提交</text>
+</svg>
