@@ -1,0 +1,285 @@
+{
+  "skill_name": "dingtalk-table-webhook",
+  "evals": [
+    {
+      "id": 1,
+      "name": "complete-record-share",
+      "prompt": "帮我把这条前端分享写进钉钉表格，标题是《React Compiler 初体验》，分享人是 257700519，时间是 2026-03-23，类别是 使用心得，内容是：我在项目里试了 React Compiler，发现对心智负担有明显降低，推荐团队关注。",
+      "expected_output": "1) 读取项目配置文件 skills/dingtalk-table-webhook/dingtalk-table-webhooks.json；2) 匹配到 share_records 表；3) 展示包含所有业务字段的 payload 预览；4) 明确要求用户确认后才发送；5) 不自动发送。",
+      "assertions": [
+        "展示 payload JSON 预览，包含 分享标题、分享人、分享时间、类别、原始内容",
+        "在确认步骤前不发送 HTTP 请求",
+        "不自动映射触发词为类别",
+        "分享人格式为数组 ['257700519']"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "missing-fields-one-pass",
+      "prompt": "记一条分享：标题是《前端工程化实践》，内容是分享了 monorepo 在我们项目的落地过程。",
+      "expected_output": "1) 识别缺少 分享人、分享时间、类别 三个必填字段；2) 一次性列出所有缺失字段请用户补齐；3) 不逐个追问；4) 不猜测任何字段值。",
+      "assertions": [
+        "一次性提出全部缺失字段，而非逐个追问",
+        "不猜测 sharer / date / category 值",
+        "清楚列出缺失字段名称"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "invalid-enum-rejection",
+      "prompt": "新增一条分享到钉钉表格：标题 Agent SDK 上手，分享人 257700519，日期 2026-03-23，类别 行业新闻，内容 介绍 Agent SDK 的基本使用方式。",
+      "expected_output": "1) 识别 '行业新闻' 不在枚举 ['技术动态','使用心得','推荐安利'] 中；2) 拒绝该值并列出可选项；3) 要求用户重新选择；4) 不自动映射或选择最接近的选项。",
+      "assertions": [
+        "拒绝 '行业新闻' 枚举值",
+        "展示允许的枚举选项",
+        "不自动选择替代类别"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "markdown-normal-image-summary",
+      "prompt": "帮我记一条前端分享：标题是《Claude Code 代码审查经验》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md",
+      "expected_output": "1) 识别显式 Markdown 文件路径；2) 原始内容来自 Markdown 文件而非聊天里的内容字段；3) 普通图片被总结并按原位置插回；4) 发送前展示 payload 预览并要求确认。",
+      "assertions": [
+        "识别 Markdown 文件路径为运行时输入",
+        "原始内容来源说明指向 basic-share.md",
+        "普通图片输出为图片总结而非流程图关系",
+        "确认前不发送 HTTP 请求"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "markdown-flowchart-to-relations",
+      "prompt": "帮我记一条 AI 分享：标题是《Markdown 到钉钉表格的自动化流程》，分享人是 257700519，时间是 2026-03-25，类别是 技术动态，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/flow-share.md",
+      "expected_output": "1) 读取 flow-share.md；2) 识别流程图图片；3) 在原始内容中输出至少一条 节点 -> 节点 关系；4) 仍然在发送前展示完整 JSON。",
+      "assertions": [
+        "流程图图片输出为结构化 节点 -> 节点 文本",
+        "不会把流程图只写成普通图片总结",
+        "原始内容来源说明指向 flow-share.md"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "markdown-broken-image-nonblocking",
+      "prompt": "帮我记一条前端分享：标题是《图片失败降级测试》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/broken-image-share.md",
+      "expected_output": "1) 读取 broken-image-share.md；2) 遇到失效图片时不阻断；3) 在对应位置写出图片处理失败说明；4) 整体仍可进入 payload 预览确认。",
+      "assertions": [
+        "图片失败时输出失败说明",
+        "图片失败不会阻断整体预览",
+        "确认前不发送 HTTP 请求"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "markdown-content-overrides-chat-content",
+      "prompt": "帮我记一条前端分享：标题是《Markdown 优先级测试》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，内容：这段内容应该被忽略，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md",
+      "expected_output": "1) 识别 Markdown 文件；2) 忽略聊天里的 内容 字段；3) 预览中说明原始内容以 Markdown 文件为准；4) 最终 payload 的 原始内容 不应等于聊天中的那段内容。",
+      "assertions": [
+        "聊天中的 内容 字段被忽略",
+        "预览中提示原始内容来自 Markdown 文件",
+        "原始内容来自 Markdown 文件"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "markdown-empty-label-blocks",
+      "prompt": "帮我记一条前端分享：标题是《空路径测试》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，Markdown 文件：",
+      "expected_output": "1) 识别到显式标签但路径为空；2) 阻断；3) 明确提示缺少 Markdown 文件路径；4) 不进入 payload 预览。",
+      "assertions": [
+        "提示缺少 Markdown 文件路径",
+        "不会生成 payload 预览"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "markdown-only-defaults",
+      "prompt": "帮我记一条分享：Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md",
+      "expected_output": "1) 在只有一个表且未匹配到触发词时自动选择 share_records；2) 读取 Markdown 内容作为原始内容；3) 使用 defaults.sharer、defaults.category、defaults.trigger 自动补齐缺失业务字段；4) 分享时间自动填充为当天 YYYY-MM-DD；5) 展示预览并等待确认。",
+      "assertions": [
+        "无触发词且只有一个表时自动选择该表",
+        "分享人来自 defaults.sharer",
+        "类别来自 defaults.category",
+        "触发词来自 defaults.trigger",
+        "分享时间使用当天日期而不是文件时间戳",
+        "确认前不发送 HTTP 请求"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "markdown-explicit-overrides-defaults",
+      "prompt": "帮我记一条分享：标题：显式字段优先，分享人：88888888，类别：使用心得，触发词：AI分享，时间：2026-03-20，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md",
+      "expected_output": "1) 识别 markdownFile；2) 对于分享人、类别、触发词、时间使用显式输入；3) 不用 defaults 对这些已提供字段进行覆盖；4) 原始内容仍来自 Markdown 文件；5) 展示预览并等待确认。",
+      "assertions": [
+        "显式 sharer 覆盖 defaults.sharer",
+        "显式 category 覆盖 defaults.category",
+        "显式 trigger 覆盖 defaults.trigger",
+        "显式 date 覆盖当天日期默认值",
+        "原始内容仍来自 Markdown 文件"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "markdown-title-fallback-to-filename",
+      "prompt": "帮我记一条分享：Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/filename-fallback-share.md",
+      "expected_output": "1) 读取 filename-fallback-share.md；2) 因 Markdown 转换结果没有可用标题候选，不能从图片失败说明中取标题；3) 标题按回退链最终使用文件名 filename-fallback-share；4) 其他缺失业务字段按 Markdown-only 规则处理；5) 展示预览并等待确认。",
+      "assertions": [
+        "标题最终回退为 filename-fallback-share",
+        "不会把图片失败说明当成标题来源",
+        "原始内容仍保留图片处理失败说明或其他转换结果",
+        "确认前不发送 HTTP 请求"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "missing-default-sharer-blocks",
+      "prompt": "在一个配置缺少 defaults.sharer 且用户也未提供分享人的项目里，帮我记一条分享：Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md",
+      "expected_output": "1) 进入 Markdown-only 流程；2) 发现没有显式 sharer 且无 defaults.sharer；3) 阻断并要求用户提供分享人或配置 defaults.sharer；4) 不进入 payload 预览。",
+      "assertions": [
+        "提示需要提供分享人或配置 defaults.sharer",
+        "不会猜测 sharer",
+        "不会生成 payload 预览"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "invalid-default-category-config-error",
+      "prompt": "在一个配置了 defaults.category 为无效枚举值的项目里，帮我记一条分享：Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md",
+      "expected_output": "1) 读取配置时校验 defaults.category；2) 发现其不在 fields.category.options 中；3) 报告配置错误并阻断执行；4) 不静默忽略无效 defaults，不进入 payload 预览。",
+      "assertions": [
+        "把无效 defaults.category 视为配置错误",
+        "不会静默忽略无效默认值",
+        "不会生成 payload 预览"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "old-root-config-is-ignored",
+      "prompt": "仓库根目录下存在 skills-config/dingtalk-table-webhooks.json，但技能目录下真实配置缺失。现在帮我记一条分享：标题《旧路径忽略测试》，内容：验证旧配置路径不会再被读取。",
+      "expected_output": "1) 只尝试读取 skills/dingtalk-table-webhook/dingtalk-table-webhooks.json；2) 明确忽略旧的 skills-config/dingtalk-table-webhooks.json；3) 若真实配置不存在，则仅把 example 文件作为格式参考并提示用户创建真实配置；4) 不继续表选择、预览或发送。",
+      "assertions": [
+        "不会从 skills-config/dingtalk-table-webhooks.json 读取配置",
+        "提示真实配置路径是 skills/dingtalk-table-webhook/dingtalk-table-webhooks.json",
+        "若缺少真实配置则停止执行"
+      ]
+    },
+    {
+      "id": 15,
+      "name": "markdown-code-block-path-not-extracted",
+      "prompt": "帮我记一条分享：标题是《代码块路径负例》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，下面是示例代码块：```\nMarkdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md\n```",
+      "expected_output": "1) 代码块中的 Markdown 路径不应被提取为 markdownFile；2) 因缺少内容来源而维持原有缺字段处理；3) 不应尝试读取 basic-share.md。",
+      "assertions": [
+        "不会从代码块中提取 markdownFile",
+        "不会尝试读取 basic-share.md",
+        "维持原有缺字段处理"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "markdown-example-text-path-not-extracted",
+      "prompt": "我在文档里举个例子，像 Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md 这种写法只是示例，不是这次要提交的文件。帮我记一条分享：标题是《示例文本路径负例》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得。",
+      "expected_output": "1) 示例文本中的路径不应被提取为 markdownFile；2) 不应尝试读取 basic-share.md；3) 仍按原流程判断缺少原始内容来源。",
+      "assertions": [
+        "不会从示例文本中提取 markdownFile",
+        "不会尝试读取 basic-share.md"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "markdown-text-only-no-images",
+      "prompt": "帮我记一条前端分享：标题是《纯文字分享》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/text-only-share.md",
+      "expected_output": "1) 读取 text-only-share.md；2) 无图片处理；3) 原始内容直接来自 Markdown 正文；4) 展示 payload 预览并要求确认。",
+      "assertions": [
+        "原始内容来源说明指向 text-only-share.md",
+        "不产生图片总结或流程图识别块",
+        "确认前不发送 HTTP 请求"
+      ]
+    },
+    {
+      "id": 18,
+      "name": "markdown-remote-image-nonblocking",
+      "prompt": "帮我记一条前端分享：标题是《远程图片降级测试》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/remote-image-share.md",
+      "expected_output": "1) 读取 remote-image-share.md；2) 遇到远程 URL 图片时不阻断；3) 在对应位置写出[不支持远程图片]的失败说明；4) 整体仍可进入预览确认。",
+      "assertions": [
+        "输出包含不支持远程图片的失败说明",
+        "远程图片失败不阻断整体预览",
+        "确认前不发送 HTTP 请求"
+      ]
+    },
+    {
+      "id": 19,
+      "name": "markdown-nonexistent-path-blocks",
+      "prompt": "帮我记一条前端分享：标题是《不存在路径阻断测试》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/does-not-exist.md",
+      "expected_output": "1) 尝试读取 does-not-exist.md；2) 文件不存在，阻断；3) 明确告知 Markdown 文件路径不存在；4) 不进入 payload 预览。",
+      "assertions": [
+        "提示 Markdown 文件路径不存在",
+        "不会生成 payload 预览"
+      ]
+    },
+    {
+      "id": 20,
+      "name": "markdown-non-md-extension-blocks",
+      "prompt": "帮我记一条前端分享：标题是《非 md 扩展名阻断测试》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.txt",
+      "expected_output": "1) 识别文件扩展名不是 .md；2) 阻断；3) 明确告知文件扩展名不符合要求；4) 不进入 payload 预览。",
+      "assertions": [
+        "提示扩展名不是 .md",
+        "不会生成 payload 预览"
+      ]
+    },
+    {
+      "id": 21,
+      "name": "multiple-markdown-paths-block",
+      "prompt": "帮我记一条前端分享：标题是《多路径歧义阻断》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md，md路径：skills/dingtalk-table-webhook/examples/markdown/flow-share.md",
+      "expected_output": "1) 识别两个不同的显式 Markdown 路径；2) 规范化后仍是不同文件；3) 阻断；4) 要求用户选择一个 Markdown 文件。",
+      "assertions": [
+        "提示存在多个不同的 Markdown 文件路径",
+        "不会生成 payload 预览",
+        "要求用户选择一个路径"
+      ]
+    },
+    {
+      "id": 22,
+      "name": "today-date-is-dynamic",
+      "prompt": "帮我记一条分享：Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/basic-share.md",
+      "expected_output": "1) 在 markdown-only 场景且未显式提供日期时，分享时间自动填充为执行当天的本地日期；2) 日期格式必须是 YYYY-MM-DD；3) 不能硬编码为文档中的示例日期，也不能使用 Markdown 文件时间戳。",
+      "assertions": [
+        "分享时间使用执行当天本地日期",
+        "日期格式为 YYYY-MM-DD",
+        "不会复用 README 或样例里的固定日期"
+      ]
+    },
+    {
+      "id": 23,
+      "name": "single-table-no-trigger-auto-select",
+      "prompt": "帮我记一条分享：标题《无触发词单表自动选中测试》，分享人 257700519，时间 2026-03-25，类别 使用心得，内容：没有写前端分享或 AI 分享这些触发词。",
+      "expected_output": "1) 未命中任何路由触发词；2) 若配置中只有一张表，则自动选择该表；3) 继续构建预览并要求确认；4) 不要求用户手动选表。",
+      "assertions": [
+        "无触发词且单表时自动选表",
+        "不会额外要求用户选择表",
+        "确认前不发送 HTTP 请求"
+      ]
+    },
+    {
+      "id": 24,
+      "name": "multiple-tables-no-trigger-ask-user-to-choose",
+      "prompt": "在一个配置了多张表的项目里，帮我记一条分享：标题《无触发词多表选择测试》，分享人 257700519，时间 2026-03-25，类别 使用心得，内容：这次请求没有出现任何已配置触发词。",
+      "expected_output": "1) 未命中任何路由触发词；2) 因配置中存在多张表，阻断并要求用户选择目标表；3) 不自行猜测或默认选第一张表；4) 在选表前不生成 payload 预览。",
+      "assertions": [
+        "多表且无触发词时要求用户选择目标表",
+        "不会默认选择第一张表",
+        "不会在选表前生成 payload 预览"
+      ]
+    },
+    {
+      "id": 25,
+      "name": "markdown-table-and-code-conversion",
+      "prompt": "帮我记一条前端分享：标题是《含表格与代码块的分享》，分享人是 257700519，时间是 2026-03-25，类别是 使用心得，Markdown 文件：skills/dingtalk-table-webhook/examples/markdown/table-share.md",
+      "expected_output": "1) 读取 table-share.md；2) 表格展开为 `列名: 值` 格式；3) 代码块以 `代码块：` 标记保留；4) 链接保留可见文字；5) 展示 payload 预览。",
+      "assertions": [
+        "表格被转换为 列名: 值 格式",
+        "代码块以 代码块： 标记保留",
+        "链接保留可见文字",
+        "确认前不发送 HTTP 请求"
+      ]
+    }
+  ]
+}

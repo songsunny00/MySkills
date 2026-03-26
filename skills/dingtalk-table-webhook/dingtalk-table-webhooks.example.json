@@ -1,0 +1,54 @@
+{
+  "tables": {
+    "share_records": {
+      "label": "分享记录表",
+      "webhook": {
+        "env": "DT_SHARE_WEBHOOK_URL",
+        "url": ""
+      },
+      "triggers": ["前端分享", "AI分享", "分享"],
+      "request": {
+        "recordsKey": "records",
+        "fieldsKey": "fields"
+      },
+      "defaults": {
+        "sharer": ["257700519"],
+        "category": "技术动态",
+        "trigger": "前端分享"
+      },
+      "fields": {
+        "title": {
+          "target": "分享标题",
+          "type": "string",
+          "required": true
+        },
+        "sharer": {
+          "target": "分享人",
+          "type": "stringArray",
+          "required": true
+        },
+        "date": {
+          "target": "分享时间",
+          "type": "date",
+          "required": true
+        },
+        "category": {
+          "target": "类别",
+          "type": "enum",
+          "required": true,
+          "options": ["技术动态", "使用心得", "推荐安利"]
+        },
+        "trigger": {
+          "target": "触发词",
+          "type": "string",
+          "required": false
+        },
+        "content": {
+          "target": "原始内容",
+          "type": "string",
+          "required": true
+        }
+      }
+    }
+  }
+}
