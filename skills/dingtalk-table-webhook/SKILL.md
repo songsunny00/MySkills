@@ -112,6 +112,8 @@ For the share-record case, this often means values like:
 - category
 - content
 
+These are semantic business keys in the skill contract. The actual DingTalk field names in the final payload come from the selected table config's `fields` mapping.
+
 Do not invent values.
 Do not auto-correct enum values silently.
 Do not infer member IDs beyond configured defaults.
@@ -153,7 +155,7 @@ Apply in order; use the first that succeeds:
 
 1. Explicit title provided by the user
 2. Markdown heading text from the first heading line (e.g. `# 标题` → extracts `标题`)
-3. First non-empty text fragment from the Markdown-to-text conversion result
+3. First non-empty plain-text fragment from the Markdown conversion result that comes from textual Markdown content (for example heading, paragraph, list, table, blockquote, or code text) rather than an image summary block or image failure note
 4. Filename without the `.md` extension
 
 Title is considered missing only if all four sources fail.
@@ -265,7 +267,7 @@ Unsupported image sources (produce failure note, do not block):
 Validate before building the final request:
 - required fields must all be present (after controlled default filling if markdownFile was provided)
 - enum values must be exact configured options
-- date fields must match the configured date format or an obviously valid normalized form
+- if a date field is present, it must be converted to the configured output format before payload build; if the user input is ambiguous or cannot be converted with confidence, stop and ask for a clearer date instead of guessing
 - array fields must match the configured type
 
 If fields are missing, ask for all missing required fields in one message.
@@ -362,7 +364,7 @@ If the user gives an enum not in config:
 
 Before confirmation, use this structure:
 
-```markdown
+````markdown
 目标表：<label>
 
 准备写入的记录：
@@ -377,7 +379,7 @@ Before confirmation, use this structure:
 ```
 
 请确认是否发送。
-```
+````
 
 After sending, use this structure:
 
