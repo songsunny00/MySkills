@@ -1,6 +1,6 @@
 ---
 name: dingtalk-table-webhook
-description: Use when the user wants to add a record into a DingTalk table through an automation webhook, especially when they describe the record in natural language, provide a Markdown file path as the content source, want Claude to summarize screenshots or convert flowchart images into structured text, or need field validation, payload preview, and explicit confirmation before sending.
+description: Use when the user wants to add a record into a DingTalk table through an automation webhook, especially when they describe the record in natural language, provide a Markdown file path as the content source, want Claude to summarize screenshots or convert flowchart images into structured text, or need field validation, a field-summary preview, and explicit confirmation before sending.
 ---
 
 # dingtalk-table-webhook
@@ -9,7 +9,7 @@ description: Use when the user wants to add a record into a DingTalk table throu
 
 Use this skill to turn natural-language record requests into a configured DingTalk table automation webhook payload.
 
-The core principle is: **read project config, map into the configured payload shape, fill defaults when a Markdown file is provided, ask for missing required fields once, preview the exact payload, and only send after explicit user confirmation.**
+The core principle is: **read project config, map into the configured payload shape, fill defaults when a Markdown file is provided, ask for missing required fields once, preview the final field summary, and only send after explicit user confirmation.**
 
 When a Markdown file path is explicitly provided, the `原始内容` field is generated from that file instead of chat text, and controlled default filling applies to other business fields.
 
@@ -32,11 +32,11 @@ Do not use this skill when:
 
 Before doing anything else:
 1. Read the project config file at `skills/dingtalk-table-webhook/dingtalk-table-webhooks.json`.
-2. If it does not exist, read `skills/dingtalk-table-webhook/dingtalk-table-webhooks.example.json` only as a reference for the expected format if present, tell the user to create the real config at `skills/dingtalk-table-webhook/dingtalk-table-webhooks.json`, and stop execution. Do not proceed to table selection, payload preview, payload build, or webhook send without the real config file.
+2. If it does not exist, read `skills/dingtalk-table-webhook/dingtalk-table-webhooks.example.json` only as a reference for the expected format if present, tell the user to create the real config at `skills/dingtalk-table-webhook/dingtalk-table-webhooks.json`, and stop execution. Do not proceed to table selection, field-summary preview, payload build, or webhook send without the real config file.
 3. Do NOT read from `skills-config/dingtalk-table-webhooks.json`. That path must be ignored even if the file exists there.
 4. Never guess the webhook schema. Follow config exactly.
 
-All downstream behavior below assumes the real config file was successfully loaded and validated. If only `skills/dingtalk-table-webhook/dingtalk-table-webhooks.example.json` exists, stop before table selection, payload preview, payload build, or webhook send.
+All downstream behavior below assumes the real config file was successfully loaded and validated. If only `skills/dingtalk-table-webhook/dingtalk-table-webhooks.example.json` exists, stop before table selection, field-summary preview, payload build, or webhook send.
 
 ## Config Rules
 
@@ -210,16 +210,21 @@ When `markdownFile` is present, ignore any chat-provided `内容` field. The fin
 When `markdownFile` is present:
 1. Validate the file path.
 2. Read the Markdown file as UTF-8.
-3. Convert visible Markdown content into plain text using the element rules below.
-4. Replace each image at its original position with one of:
+3. Decide whether image handling is enabled:
+   - if the user explicitly says image recognition can be skipped (for example `不用识别图片`, `跳过图片`, `图片可忽略`, `图片不用处理`), treat all images as absent
+   - otherwise apply the normal image-handling rules below
+4. Convert visible Markdown content into plain text using the element rules below.
+5. If image handling is enabled, replace each image at its original position with one of:
    - a flowchart relation block
    - a normal image summary block
    - a failure block
-5. Assemble the final plain-text result using the spacing rules below.
+6. Assemble the final plain-text result using the spacing rules below.
 
-If the Markdown file is unreadable, missing, not a `.md` file, empty, or converts to a blank result (no non-whitespace text and no image output), stop before payload preview.
+If the Markdown file is unreadable, missing, not a `.md` file, empty, or converts to a blank result (no non-whitespace text and no image output), stop before field-summary preview.
 
 Exception: if the file contains only images and all images fail, do NOT block — the failure notes themselves form the final content.
+
+If image handling was explicitly skipped and the remaining converted result is blank, block before field-summary preview. In skip-image mode, there are no failure notes or placeholder blocks to keep the content non-empty.
 
 ### 8. Markdown element conversion rules
 
@@ -254,6 +259,17 @@ Assemble the ordered fragments into the final plain text:
 - Do not concatenate adjacent text fragments without any whitespace.
 
 ### 10. Image handling
+
+If the user explicitly says image recognition can be skipped (for example `不用识别图片`, `跳过图片`, `图片可忽略`, `图片不用处理`), skip all images completely:
+- do not read them
+- do not summarize them
+- do not extract flowchart relations
+- do not insert failure notes
+- do not insert placeholder text
+
+In this mode, images contribute nothing to the final assembled content.
+
+Otherwise apply the normal rules below.
 
 If an image can be understood and its main information is expressed as nodes + arrows + sequence/branch relations, output structured `节点 -> 节点` text.
 
@@ -290,6 +306,18 @@ If an enum is invalid, reject it and show the allowed values.
 
 Build the final request body strictly from config.
 
+Construct the payload as structured data and serialize it with standard JSON encoding. Do not hand-build JSON strings.
+
+Every field value must remain valid JSON even when the source text contains special characters, including:
+- double quotes `"`
+- backslashes `\\`
+- newlines
+- carriage returns
+- tabs
+- other control characters
+
+Content containing these characters must still produce a valid request body and must not crash the flow before confirmation.
+
 Default shape for many DingTalk table automation webhooks:
 
 ```json
@@ -315,7 +343,6 @@ But do not assume this shape globally. Use configured keys like `recordsKey` and
 Always present a concise preview before sending:
 - target table label
 - field summary
-- exact JSON body
 
 Then ask for explicit confirmation.
 
@@ -386,11 +413,6 @@ Before confirmation, use this structure:
 - 原始内容来源: Markdown 文件 <path> (如适用)
 - 已忽略聊天中的内容字段（如适用）
 
-请求体：
-```json
-{...}
-```
-
 请确认是否发送。
 ````
 
@@ -407,6 +429,7 @@ After sending, use this structure:
 - Guessing category from trigger words like "前端分享" or "AI分享"
 - Guessing member IDs
 - Sending before confirmation
+- Hand-building JSON strings from user text or Markdown output instead of using proper JSON serialization
 - Hardcoding `records` and `fields` when the config defines different keys
 - Echoing full webhook URLs into chat output
 - Accepting fuzzy enum values instead of exact configured options
@@ -415,6 +438,7 @@ After sending, use this structure:
 - Reading config from `skills-config/dingtalk-table-webhooks.json` — this path must be ignored even if the file exists
 - Silently ignoring an invalid `defaults.*` value instead of reporting a config error
 - Applying default filling when `markdownFile` is NOT present
+- Skipping image recognition without an explicit user instruction
 
 ## Minimal Checklist
 
@@ -427,7 +451,8 @@ After sending, use this structure:
 - [ ] Markdown file path validated (if provided)
 - [ ] Markdown content generated (if file provided)
 - [ ] Chat content ignored when Markdown file is present
-- [ ] Payload preview shown
+- [ ] Payload built with valid JSON serialization
+- [ ] Field-summary preview shown
 - [ ] Explicit confirmation received
 - [ ] POST sent
 - [ ] Result reported
