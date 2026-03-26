@@ -81,6 +81,7 @@ Validate these constraints when reading the config. If any constraint is violate
 - If `defaults.category` is present but its value is not in `fields.category.options` → config error, block execution
 - If `defaults.sharer` is present but `fields.sharer` is absent or not type `stringArray` → config error, block execution
 - If `defaults.category` is present but `fields.category` is absent or not type `enum` → config error, block execution
+- If `defaults.trigger` is present but is not a string → config error, block execution
 - If `defaults.trigger` is present but `fields.trigger` is absent or not type `string` → config error, block execution
 - If `defaults.sharer` is absent and the user provides no explicit sharer → block with error asking the user to provide a sharer or configure `defaults.sharer`
 
@@ -92,10 +93,11 @@ Do not silently ignore an invalid default value. Every config error must be surf
 
 Match the user request against configured table triggers.
 
+- If an exact trigger match identifies one table, that table wins over any other non-exact or broader trigger matches.
 - If exactly one table matches a trigger, use it.
 - If no trigger matches but there is only one table in the config, use that table.
 - If no trigger matches and there are multiple tables, ask the user to choose.
-- If multiple tables match a trigger, ask the user to choose.
+- If multiple tables match a trigger and no single exact trigger match wins, ask the user to choose.
 
 This rule ensures that "only a Markdown file" input can still resolve to a table unambiguously when the config has exactly one table.
 
