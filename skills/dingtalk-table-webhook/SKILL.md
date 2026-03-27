@@ -70,7 +70,8 @@ A table config may include a `defaults` node at the table level:
 "defaults": {
   "sharer": ["257700519"],
   "trigger": "前端分享",
-  "category": "技术动态"
+  "category": "技术动态",
+  "creator": "你的名字"
 }
 ```
 
@@ -79,6 +80,7 @@ A table config may include a `defaults` node at the table level:
 - `defaults.sharer` — fills `sharer` when no explicit user input is provided; the value must be a `stringArray`
 - `defaults.category` — fills `category` when no explicit user input is provided; the value must be one of the options in `fields.category.options`
 - `defaults.trigger` — fills `trigger` when no explicit user input is provided; must be a `string`
+- `defaults.creator` — fills `creator` when no explicit user input is provided; must be a `string`
 
 In this skill contract, the payload `trigger` field is only type-constrained to `string` unless the selected table config defines stricter semantics elsewhere.
 
@@ -92,7 +94,8 @@ Validate these constraints when reading the config. If any constraint is violate
 - If `defaults.category` is present but `fields.category` is absent or not type `enum` → config error, block execution
 - If `defaults.trigger` is present but is not a string → config error, block execution
 - If `defaults.trigger` is present but `fields.trigger` is absent or not type `string` → config error, block execution
-- If `defaults.sharer` is absent and the user provides no explicit sharer → block with error asking the user to provide a sharer or configure `defaults.sharer`
+- If `defaults.creator` is present but is not a string → config error, block execution
+- If `defaults.creator` is present but `fields.creator` is absent or not type `string` → config error, block execution
 
 Do not silently ignore an invalid default value. Every config error must be surfaced.
 
@@ -117,6 +120,7 @@ Extract only configured business fields.
 For the share-record case, this often means values like:
 - title
 - sharer
+- creator
 - date
 - category
 - content
@@ -174,7 +178,14 @@ Title is considered missing only if all four sources fail.
 1. Explicit sharer provided by the user
 2. `defaults.sharer` from config
 
-If both are absent, block and ask the user to provide a sharer (or configure `defaults.sharer`).
+If both are absent, leave the field empty (sharer is optional).
+
+#### Creator fallback chain
+
+1. Explicit creator provided by the user
+2. `defaults.creator` from config
+
+If both are absent, leave the field empty (creator is optional).
 
 #### Date fallback chain
 
@@ -327,6 +338,7 @@ Default shape for many DingTalk table automation webhooks:
       "fields": {
         "分享标题": "文章标题",
         "分享人": ["257700519"],
+        "创建人": "你的名字",
         "分享时间": "2026-03-23",
         "类别": "技术动态",
         "原始内容": "富文本内容"

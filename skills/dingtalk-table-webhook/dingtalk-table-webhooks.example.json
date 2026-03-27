@@ -4,7 +4,7 @@
       "label": "分享记录表",
       "webhook": {
         "env": "DT_SHARE_WEBHOOK_URL",
-        "url": ""
+        "url": "你的钉钉AI表格Webhook URL"
       },
       "triggers": ["前端分享", "AI分享", "分享"],
       "request": {
@@ -14,7 +14,8 @@
       "defaults": {
         "sharer": ["257700519"],
         "category": "技术动态",
-        "trigger": "前端分享"
+        "trigger": "前端分享",
+        "creator": "你的名字"
       },
       "fields": {
         "title": {
@@ -25,7 +26,12 @@
         "sharer": {
           "target": "分享人",
           "type": "stringArray",
-          "required": true
+          "required": false
+        },
+        "creator": {
+          "target": "创建人",
+          "type": "string",
+          "required": false
         },
         "date": {
           "target": "分享时间",
