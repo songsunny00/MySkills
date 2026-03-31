@@ -46,15 +46,19 @@ def send_webhook(url, payload):
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python send_webhook.py <payload.json> [table_key]")
+        print("Usage: python send_webhook.py <payload.json|-> [table_key]")
         print("Example: python send_webhook.py payload.json share_records")
+        print("Example: echo '{...}' | python send_webhook.py - share_records")
         sys.exit(1)
-    
+
     payload_path = sys.argv[1]
     table_key = sys.argv[2] if len(sys.argv) > 2 else "share_records"
-    
-    with open(payload_path, "r", encoding="utf-8") as f:
-        payload = json.load(f)
+
+    if payload_path == "-":
+        payload = json.load(sys.stdin)
+    else:
+        with open(payload_path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
     
     config = load_config()
     webhook_url = get_webhook_url(config, table_key)
